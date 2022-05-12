@@ -10,8 +10,8 @@ class FocalSimilarity(nn.Module):
                  h_1: int,
                  epsilon: float):
         super().__init__()
-        prototype_shape = (num_prototypes, num_features, w_1, h_1)
-        self.prototype_vectors = nn.Parameter(torch.randn(prototype_shape), requires_grad=True)
+        prototypes_shape = (num_prototypes, num_features, w_1, h_1)
+        self.prototype_vectors = nn.Parameter(torch.randn(prototypes_shape), requires_grad=True)
 
     def forward(self, xs: torch.Tensor, W: int, H: int) -> torch.Tensor:
         distances = self._l2_convolution(xs)
