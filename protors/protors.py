@@ -27,7 +27,7 @@ class ProtoRS(nn.Module):
         self.num_prototypes = args.num_prototypes
         self.prototype_shape = (args.W1, args.H1, args.num_features)
         self.prototype_layer = FocalSimilarity(self.num_prototypes,
-                                        self.num_features,
+                                        args.num_features,
                                         args.W1,
                                         args.H1,
                                         self.epsilon)
@@ -82,11 +82,11 @@ class ProtoRS(nn.Module):
                 xs: torch.Tensor
                 ) -> tuple:
         # Forward conv net
-        features = self._net(xs)
-        features = self._add_on(features)
+        features = self.net(xs)
+        features = self.add_on(features)
         bs, D, W, H = features.shape
         # Compute simlarities
-        similarities = self.prototype_layer(features, W, H)
+        similarities = self.prototype_layer(features, W, H).view(bs, self.num_prototypes)
         # Classify
         out_cont, out_disc = self.mllp(similarities)
         return out_cont, out_disc

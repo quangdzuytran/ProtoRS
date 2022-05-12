@@ -10,6 +10,7 @@ class FocalSimilarity(nn.Module):
                  h_1: int,
                  epsilon: float):
         super().__init__()
+        self.epsilon = epsilon
         prototypes_shape = (num_prototypes, num_features, w_1, h_1)
         self.prototype_vectors = nn.Parameter(torch.randn(prototypes_shape), requires_grad=True)
 
