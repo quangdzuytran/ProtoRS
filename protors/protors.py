@@ -44,8 +44,7 @@ class ProtoRS(nn.Module):
                         estimated_grad=estimated_grad)
     
     def forward(self, 
-                xs: torch.Tensor
-                ) -> torch.Tensor:
+                xs: torch.Tensor):
         # Forward conv net
         features = self._net(xs)
         features = self._add_on(features)
