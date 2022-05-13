@@ -1,10 +1,11 @@
 import argparse
+from sklearn.preprocessing import binarize
 
 import torch
 import torch.nn as nn
 
 from protors.mllp import MLLP
-from util.focalsim import FocalSimilarity
+from util.prototype_sim import FocalSimilarity, Binarization
 
 class ProtoRS(nn.Module):
     def __init__(self, 
@@ -31,9 +32,10 @@ class ProtoRS(nn.Module):
                                         args.W1,
                                         args.H1,
                                         self.epsilon)
+        self.binarize_layer = Binarization(self.num_prototypes)
         # MLLP
-        n_discrete_features = 0
-        n_continuous_features = self.num_prototypes
+        n_discrete_features = self.num_prototypes
+        n_continuous_features = 0
         self.rs_dim_list = [(n_discrete_features, n_continuous_features)] + \
                             list(map(int, args.structure.split('@'))) + \
                             [self.num_classes]
@@ -70,6 +72,14 @@ class ProtoRS(nn.Module):
         self.prototype_layer.prototype_vectors.requires_grad = val
 
     @property
+    def binarization_requires_grad(self) -> bool:
+        return self.binarize_layer.thresholds.requires_grad
+
+    @binarization_requires_grad.setter
+    def binarization_requires_grad(self, val: bool):
+        self.binarize_layer.thresholds.requires_grad = val
+
+    @property
     def mllp_requires_grad(self) -> bool:
         return self.mllp.layer_list[-1].requires_grad
 
@@ -85,10 +95,11 @@ class ProtoRS(nn.Module):
         features = self.net(xs)
         features = self.add_on(features)
         bs, D, W, H = features.shape
-        # Compute simlarities
+        # Compute similarities and binarize
         similarities = self.prototype_layer(features, W, H).view(bs, self.num_prototypes)
+        binarized_similarities = self.binarize_layer(similarities)
         # Classify
-        out_cont, out_disc = self.mllp(similarities)
+        out_cont, out_disc = self.mllp(binarized_similarities)
         return out_cont, out_disc
 
     

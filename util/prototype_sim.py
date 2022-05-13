@@ -1,3 +1,5 @@
+from turtle import forward
+from sklearn.preprocessing import binarize
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -51,6 +53,17 @@ class FocalSimilarity(nn.Module):
 
     def _distances_to_similarities(self, distances):
         return torch.log((distances + 1) / (distances + self.epsilon))
+
+
+class Binarization(nn.Module):
+    def __init__(self, num_prototypes):
+        super().__init__()
+        self.thresholds = nn.Parameter(torch.randn(num_prototypes), requires_grad=True)
+
+    def forward(self, xs: torch.Tensor) -> torch.Tensor:
+        binarized = (xs > self.thresholds).float()
+        return binarized
+
 
     
 
