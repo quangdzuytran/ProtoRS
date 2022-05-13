@@ -29,7 +29,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--net',
                         type=str,
                         default='resnet50_inat',
-                        help='Base network used in the tree. Pretrained network on iNaturalist is only available for resnet50_inat (default). Others are pretrained on ImageNet. Options are: resnet18, resnet34, resnet50, resnet50_inat, resnet101, resnet152, densenet121, densenet169, densenet201, densenet161, vgg11, vgg13, vgg16, vgg19, vgg11_bn, vgg13_bn, vgg16_bn or vgg19_bn')
+                        help='Base network used in the model. Pretrained network on iNaturalist is only available for resnet50_inat (default). Others are pretrained on ImageNet. Options are: resnet18, resnet34, resnet50, resnet50_inat, resnet101, resnet152, densenet121, densenet169, densenet201, densenet161, vgg11, vgg13, vgg16, vgg19, vgg11_bn, vgg13_bn, vgg16_bn or vgg19_bn')
     parser.add_argument('--batch_size',
                         type=int,
                         default=64,
@@ -37,23 +37,27 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--epochs',
                         type=int,
                         default=100,
-                        help='The number of epochs the tree should be trained')
+                        help='The number of epochs the model should be trained')
     parser.add_argument('--optimizer',
                         type=str,
                         default='AdamW',
-                        help='The optimizer that should be used when training the tree')
+                        help='The optimizer that should be used when training the model')
     parser.add_argument('--lr',
                         type=float,
-                        default=0.001, 
+                        default=0.001,
                         help='The optimizer learning rate for training the prototypes')
     parser.add_argument('--lr_block',
                         type=float,
-                        default=0.001, 
+                        default=0.001,
                         help='The optimizer learning rate for training the 1x1 conv layer and last conv layer of the underlying neural network (applicable to resnet50 and densenet121)')
     parser.add_argument('--lr_net',
                         type=float,
-                        default=1e-5, 
+                        default=1e-5,
                         help='The optimizer learning rate for the underlying neural network')
+    parser.add_argument('--lr_rule',
+                        type=float,
+                        default=0.001,
+                        help='The optimizer learning rate for the logical layers')
     parser.add_argument('--momentum',
                         type=float,
                         default=0.9,
@@ -67,7 +71,7 @@ def get_args() -> argparse.Namespace:
                         help='Flag that disables GPU usage if set')
     parser.add_argument('--log_dir',
                         type=str,
-                        default='./runs/run_prototree',
+                        default='./runs/run_protors',
                         help='The directory in which train progress should be logged')
     parser.add_argument('--W1',
                         type=int,
@@ -110,9 +114,9 @@ def get_args() -> argparse.Namespace:
                         action='store_true',
                         help='When set, the backbone network is initialized with random weights instead of being pretrained on another dataset). When not set, resnet50_inat is initalized with weights from iNaturalist2017. Other networks are initialized with weights from ImageNet'
                         )
-    parser.add_argument('--log_probabilities',
+    parser.add_argument('--estimated_grad',
                         action='store_true',
-                        help='Flag that uses log probabilities when set. Useful when getting NaN values.'
+                        help='Flag that uses estimated gradient.'
                         )
     args = parser.parse_args()
     args.milestones = get_milestones(args)
@@ -124,7 +128,7 @@ def get_args() -> argparse.Namespace:
     """
 def get_milestones(args: argparse.Namespace):
     if args.milestones != '':
-        milestones_list = args.milestones.split(',')
+        milestones_list = args.milestones.split(', ')
         for m in range(len(milestones_list)):
             milestones_list[m]=int(milestones_list[m])
     else:
@@ -164,10 +168,10 @@ def load_args(directory_path: str) -> argparse.Namespace:
         args = pickle.load(f)
     return args
 
-def get_optimizer(tree, args: argparse.Namespace) -> torch.optim.Optimizer:
+def get_optimizer(model, args: argparse.Namespace) -> torch.optim.Optimizer:
     """
     Construct the optimizer as dictated by the parsed arguments
-    :param tree: The tree that should be optimized
+    :param model: The model that should be optimized
     :param args: Parsed arguments containing hyperparameters. The '--optimizer' argument specifies which type of
                  optimizer will be used. Optimizer specific arguments (such as learning rate and momentum) can be passed
                  this way as well
@@ -179,14 +183,10 @@ def get_optimizer(tree, args: argparse.Namespace) -> torch.optim.Optimizer:
     params_to_freeze = []
     params_to_train = []
 
-    dist_params = []
-    for name,param in tree.named_parameters():
-        if 'dist_params' in name:
-            dist_params.append(param)
     # set up optimizer
     if 'resnet50' in args.net: 
         # freeze resnet50 except last convolutional layer
-        for name,param in tree._net.named_parameters():
+        for name, param in model.net.named_parameters():
             if 'layer4.2' not in name:
                 params_to_freeze.append(param)
             else:
@@ -195,24 +195,26 @@ def get_optimizer(tree, args: argparse.Namespace) -> torch.optim.Optimizer:
         if optim_type == 'SGD':
             paramlist = [
                 {"params": params_to_freeze, "lr": args.lr_net, "weight_decay_rate": args.weight_decay, "momentum": args.momentum},
-                {"params": params_to_train, "lr": args.lr_block, "weight_decay_rate": args.weight_decay,"momentum": args.momentum}, 
-                {"params": tree._add_on.parameters(), "lr": args.lr_block, "weight_decay_rate": args.weight_decay,"momentum": args.momentum},
-                {"params": tree.prototype_layer.parameters(), "lr": args.lr,"weight_decay_rate": 0,"momentum": 0}]
-            if args.disable_derivative_free_leaf_optim:
-                paramlist.append({"params": dist_params, "lr": args.lr_pi, "weight_decay_rate": 0})
+                {"params": params_to_train, "lr": args.lr_block, "weight_decay_rate": args.weight_decay, "momentum": args.momentum},
+                {"params": model.add_on.parameters(), "lr": args.lr_block, "weight_decay_rate": args.weight_decay, "momentum": args.momentum},
+                {"params": model.prototype_layer.parameters(), "lr": args.lr, "weight_decay_rate": 0, "momentum": 0},
+                {"params": model.binarize_layer.parameters(), "lr": args.lr, "weight_decay_rate": 0, "momentum": 0}]
+            for layer in model.mllp.layer_list:
+                paramlist.append({"params": layer.parameters(), "lr": args.lr_rule, "weight_decay_rate": args.weight_decay, "momentum": args.momentum})
+        
         else:
             paramlist = [
                 {"params": params_to_freeze, "lr": args.lr_net, "weight_decay_rate": args.weight_decay},
-                {"params": params_to_train, "lr": args.lr_block, "weight_decay_rate": args.weight_decay}, 
-                {"params": tree._add_on.parameters(), "lr": args.lr_block, "weight_decay_rate": args.weight_decay},
-                {"params": tree.prototype_layer.parameters(), "lr": args.lr,"weight_decay_rate": 0}]
-            
-            if args.disable_derivative_free_leaf_optim:
-                paramlist.append({"params": dist_params, "lr": args.lr_pi, "weight_decay_rate": 0})
+                {"params": params_to_train, "lr": args.lr_block, "weight_decay_rate": args.weight_decay},
+                {"params": model.add_on.parameters(), "lr": args.lr_block, "weight_decay_rate": args.weight_decay},
+                {"params": model.prototype_layer.parameters(), "lr": args.lr, "weight_decay_rate": 0},
+                {"params": model.binarize_layer.parameters(), "lr": args.lr, "weight_decay_rate": 0}]
+            for layer in model.mllp.layer_list:
+                paramlist.append({"params": layer.parameters(), "lr": args.lr_rule, "weight_decay_rate": args.weight_decay})
     
     elif args.net == 'densenet121':
         # freeze densenet121 except last convolutional layer
-        for name,param in tree._net.named_parameters():
+        for name, param in model.net.named_parameters():
             if 'denseblock4' not in name and 'norm5' not in name:
                 params_to_freeze.append(param)
             else:
@@ -220,28 +222,30 @@ def get_optimizer(tree, args: argparse.Namespace) -> torch.optim.Optimizer:
         
         paramlist = [
             {"params": params_to_freeze, "lr": args.lr_net, "weight_decay_rate": args.weight_decay},
-            {"params": params_to_train, "lr": args.lr_block, "weight_decay_rate": args.weight_decay}, 
-            {"params": tree._add_on.parameters(), "lr": args.lr_block, "weight_decay_rate": args.weight_decay},
-            {"params": tree.prototype_layer.parameters(), "lr": args.lr,"weight_decay_rate": 0}]
-        if args.disable_derivative_free_leaf_optim:
-            paramlist.append({"params": dist_params, "lr": args.lr_pi, "weight_decay_rate": 0})
+            {"params": params_to_train, "lr": args.lr_block, "weight_decay_rate": args.weight_decay},
+            {"params": model.add_on.parameters(), "lr": args.lr_block, "weight_decay_rate": args.weight_decay},
+            {"params": model.prototype_layer.parameters(), "lr": args.lr, "weight_decay_rate": 0},
+            {"params": model.binarize_layer.parameters(), "lr": args.lr, "weight_decay_rate": 0}]
+        for layer in model.mllp.layer_list:
+            paramlist.append({"params": layer.parameters(), "lr": args.lr_rule, "weight_decay_rate": args.weight_decay})
     
     else:
         paramlist = [
-            {"params": tree._net.parameters(), "lr": args.lr_net, "weight_decay_rate": args.weight_decay}, 
-            {"params": tree._add_on.parameters(), "lr": args.lr_block, "weight_decay_rate": args.weight_decay},
-            {"params": tree.prototype_layer.parameters(), "lr": args.lr,"weight_decay_rate": 0}]
-        if args.disable_derivative_free_leaf_optim:
-            paramlist.append({"params": dist_params, "lr": args.lr_pi, "weight_decay_rate": 0})
+            {"params": model.net.parameters(), "lr": args.lr_net, "weight_decay_rate": args.weight_decay},
+            {"params": model.add_on.parameters(), "lr": args.lr_block, "weight_decay_rate": args.weight_decay},
+            {"params": model.prototype_layer.parameters(), "lr": args.lr, "weight_decay_rate": 0},
+            {"params": model.binarize_layer.parameters(), "lr": args.lr, "weight_decay_rate": 0}]
+        for layer in model.mllp.layer_list:
+            paramlist.append({"params": layer.parameters(), "lr": args.lr_rule, "weight_decay_rate": args.weight_decay})
     
     if optim_type == 'SGD':
         return torch.optim.SGD(paramlist,
                                lr=args.lr,
                                momentum=args.momentum), params_to_freeze, params_to_train
     if optim_type == 'Adam':
-        return torch.optim.Adam(paramlist,lr=args.lr,eps=1e-07), params_to_freeze, params_to_train
+        return torch.optim.Adam(paramlist, lr=args.lr, eps=1e-07), params_to_freeze, params_to_train
     if optim_type == 'AdamW':
-        return torch.optim.AdamW(paramlist,lr=args.lr,eps=1e-07, weight_decay=args.weight_decay), params_to_freeze, params_to_train
+        return torch.optim.AdamW(paramlist, lr=args.lr, eps=1e-07, weight_decay=args.weight_decay), params_to_freeze, params_to_train
 
     raise Exception('Unknown optimizer argument given!')
 

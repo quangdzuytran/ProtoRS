@@ -1,11 +1,12 @@
 import argparse
-from sklearn.preprocessing import binarize
+import os
+import pickle
 
 import torch
 import torch.nn as nn
 
 from protors.mllp import MLLP
-from util.prototype_sim import FocalSimilarity, Binarization
+from protors.prototype_sim import FocalSimilarity, Binarization
 
 class ProtoRS(nn.Module):
     def __init__(self, 
@@ -87,7 +88,30 @@ class ProtoRS(nn.Module):
     def mllp_requires_grad(self, val: bool):
         for layer in self.mllp.layer_list:
             layer.requires_grad = val
-    
+
+    def save(self, directory_path: str):
+        # Make sure the target directory exists
+        if not os.path.isdir(directory_path):
+            os.mkdir(directory_path)
+        # Save the model to the target directory
+        with open(directory_path + '/model.pth', 'wb') as f:
+            torch.save(self, f)
+
+    def save_state(self, directory_path: str):
+        # Make sure the target directory exists
+        if not os.path.isdir(directory_path):
+            os.mkdir(directory_path)
+        # Save the model to the target directory
+        with open(directory_path + '/model_state.pth', 'wb') as f:
+            torch.save(self.state_dict(), f)
+        # Save the out_map of the model to the target directory
+        with open(directory_path + '/model_pickle.pkl', 'wb') as f:
+            pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+    @staticmethod
+    def load(directory_path: str):
+        return torch.load(directory_path + '/model.pth')  
+
     def forward(self, 
                 xs: torch.Tensor
                 ) -> tuple:
@@ -102,4 +126,13 @@ class ProtoRS(nn.Module):
         out_cont, out_disc = self.mllp(binarized_similarities)
         return out_cont, out_disc
 
-    
+    def forward_partial(self,
+                        xs: torch.Tensor
+                        ) -> tuple:
+        # Forward conv net
+        features = self.net(xs)
+        features = self.add_on(features)
+        bs, D, W, H = features.shape
+        # Compute similarities and binarize
+        similarities = self.prototype_layer(features, W, H).view(bs, self.num_prototypes)
+        return features, similarities
