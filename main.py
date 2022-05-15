@@ -119,6 +119,7 @@ def run_model(args=None):
     return trained_model.to('cpu'), original_test_acc
 
 if __name__ == '__main__':
+    torch.autograd.set_detect_anomaly(True)
     args = get_args()
     run_model(args)
     

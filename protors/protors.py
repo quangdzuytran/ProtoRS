@@ -17,7 +17,6 @@ class ProtoRS(nn.Module):
                  use_not: bool = False,
                  left: float = None,
                  right: float = None,
-                 estimated_grad: bool = False
                  ):
         super().__init__()
         self.num_classes = num_classes
@@ -35,8 +34,10 @@ class ProtoRS(nn.Module):
                                         self.epsilon)
         self.binarize_layer = Binarization(self.num_prototypes)
         # MLLP
-        n_discrete_features = self.num_prototypes
-        n_continuous_features = 0
+        # n_discrete_features = self.num_prototypes
+        # n_continuous_features = 0
+        n_discrete_features = 0
+        n_continuous_features = self.num_prototypes
         self.rs_dim_list = [(n_discrete_features, n_continuous_features), 1] + \
                             list(map(int, args.structure.split('@'))) + \
                             [self.num_classes]
@@ -44,7 +45,7 @@ class ProtoRS(nn.Module):
                         use_not=use_not, 
                         left=left, 
                         right=right, 
-                        estimated_grad=estimated_grad)
+                        estimated_grad=args.estimated_grad)
     
     @property
     def features_requires_grad(self) -> bool:
@@ -121,9 +122,10 @@ class ProtoRS(nn.Module):
         bs, D, W, H = features.shape
         # Compute similarities and binarize
         similarities = self.prototype_layer(features, W, H).view(bs, self.num_prototypes)
-        binarized_similarities = self.binarize_layer(similarities)
+        # binarized_similarities = self.binarize_layer(similarities)
         # Classify
-        out_cont, out_disc = self.mllp(binarized_similarities)
+        # out_cont, out_disc = self.mllp(binarized_similarities)
+        out_cont, out_disc = self.mllp(similarities)
         return out_cont, out_disc
 
     def forward_partial(self,
