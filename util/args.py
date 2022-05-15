@@ -19,12 +19,12 @@ def get_args() -> argparse.Namespace:
                         help='Data set on which the ProtoTree should be trained')
     parser.add_argument("--structure",
                         type=str,
-                        default='5@64',
-                        help='Set the number of nodes in the binarization layer and logical layers. '
+                        default='256@128',
+                        help='Set the number of nodes in the logical layers. '
                          'E.g., 10@64, 10@64@32@16.')
     parser.add_argument("--num_prototypes",
                         type=int,
-                        default=200,
+                        default=512,
                         help='Number of prototypes to be learned')
     parser.add_argument('--net',
                         type=str,

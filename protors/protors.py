@@ -37,7 +37,7 @@ class ProtoRS(nn.Module):
         # MLLP
         n_discrete_features = self.num_prototypes
         n_continuous_features = 0
-        self.rs_dim_list = [(n_discrete_features, n_continuous_features)] + \
+        self.rs_dim_list = [(n_discrete_features, n_continuous_features), 1] + \
                             list(map(int, args.structure.split('@'))) + \
                             [self.num_classes]
         self.mllp = MLLP(dim_list=self.rs_dim_list, 
