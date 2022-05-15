@@ -9,10 +9,10 @@ target_path = './data/CUB_200_2011/CUB_200_2011.tgz' #you might need to change t
 
 print(os.path.abspath(target_path))
 
-response = requests.get(url, stream=True, allow_redirects=True)
-if response.status_code == 200:
-    with open(target_path, 'wb') as f:
-        f.write(response.raw.read())
+# response = requests.get(url, stream=True, allow_redirects=True)
+# if response.status_code == 200:
+#     with open(target_path, 'wb') as f:
+#         f.write(response.raw.read())
 
 #or download it manually and uncomment the line below
 # gdown.download(url, target_path, quiet=False)
