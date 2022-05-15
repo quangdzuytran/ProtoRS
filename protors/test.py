@@ -24,7 +24,7 @@ def eval(model: ProtoRS,
     # Keep an info dict about the procedure
     info = dict()
     # Build a confusion matrix
-    cm = np.zeros((model._num_classes, model._num_classes), dtype=int)
+    cm = np.zeros((model.num_classes, model.num_classes), dtype=int)
 
     # Make sure the model is in evaluation mode
     model.eval()
@@ -45,7 +45,7 @@ def eval(model: ProtoRS,
         ys_pred = torch.argmax(ys_prob, dim=1)
 
         # Update the confusion matrix
-        cm_batch = np.zeros((model._num_classes, model._num_classes), dtype=int)
+        cm_batch = np.zeros((model.num_classes, model.num_classes), dtype=int)
         for y_pred, y_true in zip(ys_pred, ys):
             cm[y_true][y_pred] += 1
             cm_batch[y_true][y_pred] += 1

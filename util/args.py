@@ -97,6 +97,10 @@ def get_args() -> argparse.Namespace:
                         type=str,
                         default='',
                         help='The directory containing a state dict with a pretrained backbone network')
+    parser.add_argument('--state_dict_dir_model',
+                        type=str,
+                        default='',
+                        help='The directory containing a state dict (checkpoint) with a pretrained protors. Note that training further from a checkpoint does not seem to work correctly. Evaluating a trained protors does work.')
     parser.add_argument('--freeze_epochs',
                         type=int,
                         default = 30,
@@ -128,7 +132,7 @@ def get_args() -> argparse.Namespace:
     """
 def get_milestones(args: argparse.Namespace):
     if args.milestones != '':
-        milestones_list = args.milestones.split(', ')
+        milestones_list = args.milestones.split(',')
         for m in range(len(milestones_list)):
             milestones_list[m]=int(milestones_list[m])
     else:
