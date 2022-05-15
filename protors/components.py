@@ -95,7 +95,7 @@ class Product(torch.autograd.Function):
     """Tensor product function."""
     @staticmethod
     def forward(ctx, X):
-        y = (-1. / (-1. + torch.sum(torch.log(X), dim=1)))
+        y = (-1. / (-1. + torch.sum(torch.log(torch.relu(X) + EPSILON), dim=1)))
         ctx.save_for_backward(X, y)
         return y
 
@@ -110,7 +110,7 @@ class EstimatedProduct(torch.autograd.Function):
     """Tensor product function with a estimated derivative."""
     @staticmethod
     def forward(ctx, X):
-        y = (-1. / (-1. + torch.sum(torch.log(X), dim=1)))
+        y = (-1. / (-1. + torch.sum(torch.log(torch.relu(X) + EPSILON), dim=1)))
         ctx.save_for_backward(X, y)
         return y
 

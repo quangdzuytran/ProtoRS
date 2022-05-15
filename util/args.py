@@ -119,7 +119,7 @@ def get_args() -> argparse.Namespace:
                         help='When set, the backbone network is initialized with random weights instead of being pretrained on another dataset). When not set, resnet50_inat is initalized with weights from iNaturalist2017. Other networks are initialized with weights from ImageNet'
                         )
     parser.add_argument('--estimated_grad',
-                        action='store_false',
+                        action='store_true',
                         help='Flag that uses estimated gradient.'
                         )
     args = parser.parse_args()
