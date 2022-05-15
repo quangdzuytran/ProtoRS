@@ -58,18 +58,14 @@ def train_epoch(model: ProtoRS,
         ys_prob = torch.softmax(ys_pred_disc, dim=1)
         loss = F.cross_entropy(ys_pred_disc, ys)
         loss_grad = (ys_prob - ys_onehot) / nr_batches
-        if torch.isnan(loss_grad).any().item():
-            print("NaN detected!!!")
-            print("ys_prob:", torch.isnan(ys_prob).any().item())
-            print("ys_pred_cont:", torch.isnan(ys_pred_cont).any().item())
-            print("ys_pred_disc:", torch.isnan(ys_pred_disc).any().item())
-            print("ys_onehot:", torch.isnan(ys_onehot).any().item())
-            exit(1)
         # Compute the gradient
         ys_pred_cont.backward(loss_grad)
         # Update model parameters
         optimizer.step()
 
+        for layer in model.mllp.layer_list[:-1]:
+            layer.clip()
+        
         # Count the number of correct classifications  
         ys_pred_max = torch.argmax(ys_prob, dim=1)      
         correct = torch.sum(torch.eq(ys_pred_max, ys))
