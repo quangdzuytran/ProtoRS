@@ -136,5 +136,5 @@ class ProtoRS(nn.Module):
         features = self.add_on(features)
         bs, D, W, H = features.shape
         # Compute similarities and binarize
-        similarities = self.prototype_layer(features, W, H).view(bs, self.num_prototypes)
+        similarities = self.prototype_layer(features, W, H)
         return features, similarities
