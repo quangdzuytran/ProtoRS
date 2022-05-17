@@ -75,10 +75,6 @@ def run_model(args=None):
             save_model(model, optimizer, scheduler, epoch, log, args)
             best_train_acc = save_best_train_model(model, optimizer, scheduler, best_train_acc, train_info['train_accuracy'], log)
             
-            # Project prototypes
-            if epoch%10==0:
-                _, model = project(model, projectloader, device, args, log)
-
             # Evaluate model
             if args.epochs>100:
                 if epoch%10==0 or epoch==args.epochs:
@@ -93,6 +89,10 @@ def run_model(args=None):
                 original_test_acc = eval_info['test_accuracy']
                 best_test_acc = save_best_test_model(model, optimizer, scheduler, best_test_acc, eval_info['test_accuracy'], log)
                 log.log_values('log_epoch_overview', epoch, eval_info['test_accuracy'], train_info['train_accuracy'], train_info['loss'])
+            
+            # Project prototypes
+            if epoch%10==0:
+                _, model = project(model, projectloader, device, args, log)
             
             scheduler.step()
  
