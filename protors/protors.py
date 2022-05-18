@@ -122,10 +122,10 @@ class ProtoRS(nn.Module):
         bs, D, W, H = features.shape
         # Compute similarities and binarize
         similarities = self.prototype_layer(features, W, H).view(bs, self.num_prototypes)
-        binarized_similarities = self.binarize_layer(similarities)
+        # binarized_similarities = self.binarize_layer(similarities)
         # Classify
-        out_cont, out_disc = self.mllp(binarized_similarities)
-        # out_cont, out_disc = self.mllp(similarities)
+        # out_cont, out_disc = self.mllp(binarized_similarities)
+        out_cont, out_disc = self.mllp(similarities)
         return out_cont, out_disc
 
     def forward_partial(self,

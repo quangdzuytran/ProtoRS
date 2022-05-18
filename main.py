@@ -91,8 +91,8 @@ def run_model(args=None):
                 log.log_values('log_epoch_overview', epoch, eval_info['test_accuracy'], train_info['train_accuracy'], train_info['loss'])
             
             # Project prototypes
-            if epoch%10==0:
-                _, model = project(model, projectloader, device, args, log)
+            # if epoch%10==0:
+            #     _, model = project(model, projectloader, device, args, log)
             
             scheduler.step()
  
