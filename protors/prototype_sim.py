@@ -19,10 +19,10 @@ class FocalSimilarity(nn.Module):
         distances = self._l2_convolution(xs)
         similarities = self._distances_to_similarities(distances)
         max_similarity = F.max_pool2d(similarities, kernel_size=(W, H))
-        mean_similarity = F.avg_pool2d(similarities, kernel_size=(W, H))
-        focal_similarity = max_similarity - mean_similarity
-        return focal_similarity
-        # return max_similarity
+        # mean_similarity = F.avg_pool2d(similarities, kernel_size=(W, H))
+        # focal_similarity = max_similarity - mean_similarity
+        # return focal_similarity
+        return max_similarity
 
     def _l2_convolution(self, xs):
         # Adapted from ProtoPNet
@@ -52,8 +52,8 @@ class FocalSimilarity(nn.Module):
         return distances
 
     def _distances_to_similarities(self, distances):
-        return torch.log((distances + 1) / (distances + self.epsilon))
-        # return 1 / (1 + distances)
+        # return torch.log((distances + 1) / (distances + self.epsilon))
+        return 1 / (1 + distances + self.epsilon)
 
 
 class Binarization(nn.Module):
@@ -63,7 +63,7 @@ class Binarization(nn.Module):
         self.threshold = nn.Parameter(0.5 * torch.rand(1), requires_grad=True)
 
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
-        binarized = Binarize.apply(xs - self.threshold)
+        binarized = Binarize.apply(xs - self.thresholds)
         return binarized
 
 
