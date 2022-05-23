@@ -76,7 +76,7 @@ def run_model(args=None):
             best_train_acc = save_best_train_model(model, optimizer, scheduler, best_train_acc, train_info['train_accuracy'], log)
             
             # Evaluate model
-            if args.epochs>100:
+            if args.epochs>300:
                 if epoch%10==0 or epoch==args.epochs:
                     eval_info = eval(model, testloader, epoch, device, log)
                     original_test_acc = eval_info['test_accuracy']
