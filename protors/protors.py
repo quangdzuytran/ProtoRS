@@ -1,6 +1,7 @@
 import argparse
 import os
 import pickle
+from sklearn.preprocessing import binarize
 
 import torch
 import torch.nn as nn
@@ -32,7 +33,7 @@ class ProtoRS(nn.Module):
                                         args.W1,
                                         args.H1,
                                         self.epsilon)
-        # self.binarize_layer = Binarization(self.num_prototypes)
+        self.binarize_layer = Binarization(self.num_prototypes)
         # MLLP
         n_discrete_features = self.num_prototypes
         n_continuous_features = 0
@@ -114,18 +115,21 @@ class ProtoRS(nn.Module):
         return torch.load(directory_path + '/model.pth')  
 
     def forward(self, 
-                xs: torch.Tensor
+                xs: torch.Tensor,
+                binarize=False
                 ) -> tuple:
         # Forward conv net
         features = self.net(xs)
         features = self.add_on(features)
         bs, D, W, H = features.shape
-        # Compute similarities and binarize
+        # Compute similarities
         similarities = self.prototype_layer(features, W, H).view(bs, self.num_prototypes)
-        # binarized_similarities = self.binarize_layer(similarities)
         # Classify
-        # out_cont, out_disc = self.mllp(binarized_similarities)
-        out_cont, out_disc = self.mllp(similarities)
+        if binarize:
+            binarized_similarities = self.binarize_layer(similarities)
+            out_cont, out_disc = self.mllp(binarized_similarities)
+        else:
+            out_cont, out_disc = self.mllp(similarities)
         return out_cont, out_disc
 
     def forward_partial(self,
