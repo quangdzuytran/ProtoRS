@@ -127,8 +127,8 @@ class DSQ(nn.Module):
 
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
         # 1. Clip input using u and l
-        scaled = F.relu((self.u - xs)/self.delta())
-        return scaled
+        xs = (self.u - xs)/self.delta()
+        return xs
         print(self.alpha)
         self._clip(xs, self.l, self.u)
 
