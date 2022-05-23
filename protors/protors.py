@@ -33,7 +33,7 @@ class ProtoRS(nn.Module):
                                         args.H1,
                                         self.epsilon)
         #self.binarize_layer = Binarization(self.num_prototypes)
-        self.binarize_layer = DSQ(args.num_features * 7 * 7, # FIXME: depth * width * height of conv layer output
+        self.binarize_layer = DSQ(args.num_features,
                                 self.num_prototypes)
         # MLLP
         n_discrete_features = self.num_prototypes

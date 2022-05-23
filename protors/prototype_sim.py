@@ -96,7 +96,7 @@ class DSQ(nn.Module):
     def __init__(self, max_value, num_prototypes):
         super().__init__()
         self.l = 0
-        self.u = math.sqrt(max_value)
+        self.u = max_value
         self.alpha = nn.Parameter(data=torch.tensor(0.2).float(), requires_grad=True)
     
     def delta(self):
@@ -127,7 +127,7 @@ class DSQ(nn.Module):
 
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
         # 1. Clip input using u and l
-        scaled = F.relu((self.u - xs)/self.delta())
+        scaled = (self.u - xs)/self.delta()
         return scaled
         print(self.alpha)
         self._clip(xs, self.l, self.u)
