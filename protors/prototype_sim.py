@@ -49,14 +49,15 @@ class FocalSimilarity(nn.Module):
 
         # Use the values to compute the squared L2 distance
         distances = F.relu(xs_squared_l2 + ps_squared_l2 - 2 * xs_conv)
-        distances = torch.sqrt(torch.abs(distances) + self.epsilon)
+        # distances = torch.sqrt(torch.abs(distances) + self.epsilon)
 
         return distances
 
     def _distances_to_similarities(self, distances):
         # return torch.log((distances + 1) / (distances + self.epsilon))
         # return 1 / (1 + distances + self.epsilon)
-        return 1 - distances / torch.sqrt(torch.tensor(float(self.num_features)) + self.epsilon)
+        similarities = 1 - torch.sqrt(torch.relu(distances / torch.tensor(self.num_features)) + self.epsilon)
+        return similarities.clamp(0, 1)
 
 
 class Binarization(nn.Module):
