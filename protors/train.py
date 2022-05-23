@@ -47,18 +47,22 @@ def train_epoch(model: ProtoRS,
 
         xs, ys = xs.to(device), ys.to(device)
 
-        ys_onehot = F.one_hot(ys, num_classes=model.num_classes)
 
         # Perform a forward pass through the network
         ys_pred_cont, ys_pred_disc = model.forward(xs)
+        with torch.no_grad():
+            ys_onehot = F.one_hot(ys, num_classes=model.num_classes)
 
-        # Learn prototypes and network with gradient descent. 
-        # If disable_derivative_free_leaf_optim, leaves are optimized with gradient descent as well.
-        # Compute the loss
-        ys_prob = torch.softmax(ys_pred_disc, dim=1)
-        loss = F.cross_entropy(ys_pred_disc, ys)
+            # Learn prototypes and network with gradient descent. 
+            # If disable_derivative_free_leaf_optim, leaves are optimized with gradient descent as well.
+            # Compute the loss
+            ys_prob = torch.softmax(ys_pred_disc, dim=1)
+            loss = F.cross_entropy(ys_pred_disc, ys)
+            #ys_prob = torch.softmax(ys_pred_cont, dim=1)
+            #loss = F.cross_entropy(ys_pred_cont, ys)
+        
+        # (Manually) Compute the gradient    
         loss_grad = (ys_prob - ys_onehot) / nr_batches
-        # Compute the gradient
         ys_pred_cont.backward(loss_grad)
         # Update model parameters
         optimizer.step()

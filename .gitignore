@@ -3,3 +3,4 @@ data/
 pretrained_models/
 features/state_dicts/
 runs/
+.vscode/

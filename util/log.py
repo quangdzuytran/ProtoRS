@@ -38,7 +38,7 @@ class Log:
     def log_message(self, msg: str):
         """
         Write a message to the log file
-        :param msg: the message string to be written to the log file
+        @param msg: the message string to be written to the log file
         """
         with open(self.log_dir + '/log.txt', 'a') as f:
             f.write(msg+"\n")

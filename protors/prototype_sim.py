@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from protors.components import Binarize
+import math
 
 class FocalSimilarity(nn.Module):
     def __init__(self, 
@@ -17,12 +18,20 @@ class FocalSimilarity(nn.Module):
 
     def forward(self, xs: torch.Tensor, W: int, H: int) -> torch.Tensor:
         distances = self._l2_convolution(xs)
-        similarities = self._distances_to_similarities(distances)
-        max_similarity = F.max_pool2d(similarities, kernel_size=(W, H))
+
+        #FIXME: below lines were commented to test DSQ
+        #similarities = self._distances_to_similarities(distances) 
+        #max_similarity = F.max_pool2d(similarities, kernel_size=(W, H))
         # mean_similarity = F.avg_pool2d(similarities, kernel_size=(W, H))
         # focal_similarity = max_similarity - mean_similarity
-        # return 
-        return max_similarity
+        # return focal_similarity
+        #return max_similarity
+
+        #FIXME: below lines are for testing DSQ. Return in L2 distance unit
+        #max_distance = F.max_pool2d(distances, kernel_size=(W, H))
+        min_distance = -F.max_pool2d(-distances, kernel_size=(W, H))
+        return min_distance
+        
 
     def _l2_convolution(self, xs):
         # Adapted from ProtoPNet
@@ -59,13 +68,83 @@ class FocalSimilarity(nn.Module):
 class Binarization(nn.Module):
     def __init__(self, num_prototypes):
         super().__init__()
-        self.threshold = nn.Parameter(0.5 * torch.rand(num_prototypes), requires_grad=True)
+        #self.threshold = nn.Parameter(0.5 * torch.rand(num_prototypes), requires_grad=True)
+        #print(self.threshold)
 
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
-        binarized = Binarize.apply(xs - self.threshold)
-        return binarized
+        #binarized = Binarize.apply(xs - self.threshold)
+        binarized = Binarize.apply(xs - 0.5)
+        return binarized        
+        
+        #FIXME: test if this layer is causing model not to diverge. Edit: it is
+        #return xs
 
+class RoundWithGradient(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, x):
+        delta = torch.max(x) - torch.min(x)
+        #x = (x/2 + 0.5)
+        return x.round() * 2 - 1
+    @staticmethod
+    def backward(ctx, g):
+        return g
 
+class DSQ(nn.Module):
+    """ A quick and dirty adaptation of Differentiable Soft Quantization (DSQ) to ProtoRS. 
+    Not intended to be transfered to other models
+    """
+    def __init__(self, max_value, num_prototypes):
+        super().__init__()
+        self.l = 0
+        self.u = math.sqrt(max_value)
+        self.alpha = nn.Parameter(data=torch.tensor(0.2).float(), requires_grad=True)
     
+    def delta(self):
+        return self.u - self.l
 
+    def _clip(self, x, lower_bound, upper_bound):
+        # clip lower
+        x = x + F.relu(lower_bound - x)
+        # clip upper
+        x = x - F.relu(x - upper_bound)
+        return x
 
+    def phi_function(self, x, mi, delta, alpha):
+        # alpha should less than 2 or log will be None
+        # alpha = alpha.clamp(None, 2)
+        #alpha = torch.where(alpha >= 2.0, torch.tensor([2.0]).cuda(), alpha)
+        s = 1 / (1 - alpha)
+        k = (2/ alpha - 1).log() * (1/delta)
+        x = (((x - mi) * k ).tanh()) * s 
+        return x	
+
+    def dequantize(self, x, lower_bound, delta):
+
+        # save mem
+        x =  ((x+1)/2) * delta + lower_bound
+
+        return 
+
+    def forward(self, xs: torch.Tensor) -> torch.Tensor:
+        # 1. Clip input using u and l
+        scaled = F.relu((self.u - xs)/self.delta())
+        return scaled
+        print(self.alpha)
+        self._clip(xs, self.l, self.u)
+
+        # 2. Apply the Phi function
+        delta = self.delta()
+        mi = self.l + 0.5 * delta
+        xs = self.phi_function(xs, mi, delta, self.alpha)
+        #print(xs)
+
+        # 3. Keep consistent with standard binarization
+        #xs = RoundWithGradient.apply(xs)
+        #xs = Binarize.apply(xs)
+
+        # 4. Dequantization - not necessary
+        #xs = self.dequantize(xs, self.l, delta)
+        xs = (xs + 1) * 0.5 # round from -1 or 1 to 0 or 1
+        #print(self.alpha)
+
+        return xs

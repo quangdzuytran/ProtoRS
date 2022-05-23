@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 
 from protors.mllp import MLLP
-from protors.prototype_sim import FocalSimilarity, Binarization
+from protors.prototype_sim import FocalSimilarity, Binarization, DSQ
 
 class ProtoRS(nn.Module):
     def __init__(self, 
@@ -32,13 +32,15 @@ class ProtoRS(nn.Module):
                                         args.W1,
                                         args.H1,
                                         self.epsilon)
-        self.binarize_layer = Binarization(self.num_prototypes)
+        #self.binarize_layer = Binarization(self.num_prototypes)
+        self.binarize_layer = DSQ(args.num_features * 7 * 7, # FIXME: depth * width * height of conv layer output
+                                self.num_prototypes)
         # MLLP
         n_discrete_features = self.num_prototypes
         n_continuous_features = 0
-        # n_discrete_features = 0
-        # n_continuous_features = self.num_prototypes
-        self.rs_dim_list = [(n_discrete_features, n_continuous_features), 1] + \
+        #n_discrete_features = 0
+        #n_continuous_features = self.num_prototypes
+        self.rs_dim_list = [(n_discrete_features, n_continuous_features), 5] + \
                             list(map(int, args.structure.split('@'))) + \
                             [self.num_classes]
         self.mllp = MLLP(dim_list=self.rs_dim_list, 
@@ -125,7 +127,7 @@ class ProtoRS(nn.Module):
         binarized_similarities = self.binarize_layer(similarities)
         # Classify
         out_cont, out_disc = self.mllp(binarized_similarities)
-        # out_cont, out_disc = self.mllp(similarities)
+        #out_cont, out_disc = self.mllp(similarities)
         return out_cont, out_disc
 
     def forward_partial(self,
