@@ -56,7 +56,7 @@ class FocalSimilarity(nn.Module):
     def _distances_to_similarities(self, distances):
         # return torch.log((distances + 1) / (distances + self.epsilon))
         # return 1 / (1 + distances + self.epsilon)
-        return 1 - distances / torch.sqrt(torch.Tensor(float(self.num_features)) + self.epsilon)
+        return 1 - distances / torch.sqrt(torch.tensor(float(self.num_features)) + self.epsilon)
 
 
 class Binarization(nn.Module):
