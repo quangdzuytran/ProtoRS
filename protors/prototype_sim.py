@@ -82,8 +82,8 @@ class Binarization(nn.Module):
 class RoundWithGradient(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x):
-        delta = torch.max(x) - torch.min(x)
-        #x = (x/2 + 0.5)
+        #delta = torch.max(x) - torch.min(x)
+        x = (x/2 + 0.5)
         return x.round() * 2 - 1
     @staticmethod
     def backward(ctx, g):
@@ -127,7 +127,7 @@ class DSQ(nn.Module):
 
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
         # 1. Clip input using u and l
-        scaled = (self.u - xs)/self.delta()
+        scaled = F.relu((self.u - xs)/self.delta())
         return scaled
         print(self.alpha)
         self._clip(xs, self.l, self.u)
