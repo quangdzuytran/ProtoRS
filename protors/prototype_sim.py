@@ -12,6 +12,7 @@ class FocalSimilarity(nn.Module):
                  epsilon: float):
         super().__init__()
         self.epsilon = epsilon
+        self.num_features = num_features
         prototypes_shape = (num_prototypes, num_features, w_1, h_1)
         self.prototype_vectors = nn.Parameter(torch.randn(prototypes_shape), requires_grad=True)
 
@@ -48,12 +49,14 @@ class FocalSimilarity(nn.Module):
 
         # Use the values to compute the squared L2 distance
         distances = F.relu(xs_squared_l2 + ps_squared_l2 - 2 * xs_conv)
+        distances = torch.sqrt(torch.abs(distances) + self.epsilon)
 
         return distances
 
     def _distances_to_similarities(self, distances):
         # return torch.log((distances + 1) / (distances + self.epsilon))
-        return 1 / (1 + distances + self.epsilon)
+        # return 1 / (1 + distances + self.epsilon)
+        return 1 - distances / torch.sqrt(torch.Tensor(float(self.num_features)) + self.epsilon)
 
 
 class Binarization(nn.Module):
