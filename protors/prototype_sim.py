@@ -40,8 +40,7 @@ class FocalSimilarity(nn.Module):
 
         # So first we compute ||xs||^2  (for all patches in the input image that is. We can do this by using convolution
         # with weights set to 1 so each patch just has its values summed)
-        ones = torch.ones_like(self.prototype_vectors,
-                               device=xs.device)  # Shape: (num_prototypes, num_features, w_1, h_1)
+        ones = torch.ones_like(self.prototype_vectors, device=xs.device)  # Shape: (num_prototypes, num_features, w_1, h_1)
         xs_squared_l2 = F.conv2d(xs ** 2, weight=ones)  # Shape: (bs, num_prototypes, w_in, h_in)
 
         # Now compute ||ps||^2
@@ -127,15 +126,20 @@ class DSQ(nn.Module):
 
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
         # 1. Clip input using u and l
+        #xs = (self.u - xs)/self.delta()
+        #print(torch.min(xs), torch.max(xs))
+        if (torch.min(xs) < self.l or torch.max(xs) > self.u):
+            print("\nOut of bound value detected! min = {0}, max = {1}".format(torch.min(xs), torch.max(xs)))
         xs = (self.u - xs)/self.delta()
         return xs
         print(self.alpha)
+        alpha = self.alpha.clamp(0.0, 2.0)
         self._clip(xs, self.l, self.u)
 
         # 2. Apply the Phi function
         delta = self.delta()
         mi = self.l + 0.5 * delta
-        xs = self.phi_function(xs, mi, delta, self.alpha)
+        xs = self.phi_function(xs, mi, delta, alpha)
         #print(xs)
 
         # 3. Keep consistent with standard binarization

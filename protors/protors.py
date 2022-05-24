@@ -34,19 +34,24 @@ class ProtoRS(nn.Module):
                                         self.epsilon)
         #self.binarize_layer = Binarization(self.num_prototypes)
         self.binarize_layer = DSQ(args.num_features,
-                                self.num_prototypes)
+                                  self.num_prototypes)
         # MLLP
         n_discrete_features = self.num_prototypes
         n_continuous_features = 0
-        #n_discrete_features = 0
-        #n_continuous_features = self.num_prototypes
-        self.rs_dim_list = [(n_discrete_features, n_continuous_features), 5] + \
+        # n_discrete_features = 0
+        # n_continuous_features = self.num_prototypes
+        self.rs_dim_list = [(n_discrete_features, n_continuous_features), 1] + \
                             list(map(int, args.structure.split('@'))) + \
                             [self.num_classes]
+        # self.mllp = MLLP(dim_list=self.rs_dim_list, 
+        #                 use_not=use_not, 
+        #                 left=left, 
+        #                 right=right, 
+        #                 estimated_grad=args.estimated_grad)
         self.mllp = MLLP(dim_list=self.rs_dim_list, 
                         use_not=use_not, 
-                        left=left, 
-                        right=right, 
+                        left=torch.zeros([self.num_prototypes]), 
+                        right=torch.ones([self.num_prototypes]) * args.num_features, 
                         estimated_grad=args.estimated_grad)
     
     @property
