@@ -69,7 +69,7 @@ def train_epoch(model: ProtoRS,
 
         for layer in model.mllp.layer_list[:-1]:
             layer.clip()
-        model.prototype_layer.prototype_vectors.clamp(min=0.0, max=1.0) #FIXME: clamp prototypes
+        model.prototype_layer.prototype_vectors.data.clamp_(min=0.0, max=1.0) #FIXME: clamp prototypes
         
         # Count the number of correct classifications  
         ys_pred_max = torch.argmax(ys_prob, dim=1)      
