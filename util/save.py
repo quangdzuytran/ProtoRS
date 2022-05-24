@@ -45,38 +45,4 @@ def save_model_description(model: ProtoRS, optimizer, scheduler, description: st
     model.save_state(f'{log.checkpoint_dir}/'+description)
     torch.save(optimizer.state_dict(), f'{log.checkpoint_dir}/'+description+'/optimizer_state.pth')
     torch.save(scheduler.state_dict(), f'{log.checkpoint_dir}/'+description+'/scheduler_state.pth')
-
-def save_model_thres(model: ProtoRS, optimizer, scheduler, epoch: int, log: Log, args: argparse.Namespace):
-    model.eval()
-    # Save latest model
-    model.save(f'{log.checkpoint_dir}/latest_thres')
-    model.save_state(f'{log.checkpoint_dir}/latest_thres')
-    torch.save(optimizer.state_dict(), f'{log.checkpoint_dir}/latest_thres/optimizer_state.pth')
-    torch.save(scheduler.state_dict(), f'{log.checkpoint_dir}/latest_thres/scheduler_state.pth')
-
-    # Save model every 10 epochs
-    if epoch%10==0:
-        model.save(f'{log.checkpoint_dir}/epoch_thres_{epoch}')
-        model.save_state(f'{log.checkpoint_dir}/epoch_thres_{epoch}')
-        torch.save(optimizer.state_dict(), f'{log.checkpoint_dir}/epoch_thres_{epoch}/optimizer_state.pth')
-        torch.save(scheduler.state_dict(), f'{log.checkpoint_dir}/epoch_thres_{epoch}/scheduler_state.pth')
-
-def save_best_train_model_thres(model: ProtoRS, optimizer, scheduler, best_train_acc: float, train_acc: float, log: Log):
-    model.eval()
-    if train_acc > best_train_acc:
-        best_train_acc = train_acc
-        model.save(f'{log.checkpoint_dir}/best_train_model_thres')
-        model.save_state(f'{log.checkpoint_dir}/best_train_model_thres')
-        torch.save(optimizer.state_dict(), f'{log.checkpoint_dir}/best_train_model_thres/optimizer_state.pth')
-        torch.save(scheduler.state_dict(), f'{log.checkpoint_dir}/best_train_model_thres/scheduler_state.pth')
-    return best_train_acc
-
-def save_best_test_model_thres(model: ProtoRS, optimizer, scheduler, best_test_acc: float, test_acc: float, log: Log):
-    model.eval()
-    if test_acc > best_test_acc:
-        best_test_acc = test_acc
-        model.save(f'{log.checkpoint_dir}/best_test_model_thres')
-        model.save_state(f'{log.checkpoint_dir}/best_test_model_thres')
-        torch.save(optimizer.state_dict(), f'{log.checkpoint_dir}/best_test_model_thres/optimizer_state.pth')
-        torch.save(scheduler.state_dict(), f'{log.checkpoint_dir}/best_test_model_thres/scheduler_state.pth')
-    return best_test_acc
+    

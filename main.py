@@ -110,31 +110,7 @@ def run_model(args=None):
     '''
     log.log_message("Training Finished. Best training accuracy was %s, best test accuracy was %s\n"%(str(best_train_acc), str(best_test_acc)))
     trained_model = deepcopy(model)
-
-    best_train_acc_thres = 0.
-    best_test_acc_thres = 0.
-    optimizer_thres = torch.optim.AdamW(params=model.binarize_layer.parameters(), lr=1e-4, weight_decay=0.0, eps=1e-07) 
-    scheduler_thres = torch.optim.lr_scheduler.StepLR(optimizer=optimizer_thres, step_size=5, gamma=0.75)
-    log_prefix_thres = 'log_train_epochs_thres'
-    log_loss_thres = log_prefix_thres+'_losses'
-    log.create_log(log_loss_thres, 'epoch', 'batch', 'loss', 'batch_train_acc')
-    for epoch_thres in range(1, 21):
-        log.log_message("\nEpoch Thresholds %s"%str(epoch))
-        
-        # Train model
-        train_info_thres = train_epoch(model, trainloader, optimizer_thres, epoch_thres, device, log, log_prefix_thres, binarize=True, progress_prefix='Train Epoch Thres')
-        save_model_thres(model, optimizer_thres, scheduler_thres, epoch_thres, log, args)
-        best_train_acc_thres = save_best_train_model_thres(model, optimizer_thres, scheduler_thres, best_train_acc_thres, train_info_thres['train_accuracy'], log)
-        
-        # Evaluate model
-        eval_info_thres = eval(model, testloader, epoch_thres, device, log, binarize=True, progress_prefix='Eval Epoch Thres')
-        original_test_acc_thres = eval_info_thres['test_accuracy']
-        best_test_acc_thres = save_best_test_model_thres(model, optimizer_thres, scheduler_thres, best_test_acc_thres, eval_info_thres['test_accuracy'], log)
-        log.log_values('log_epoch_overview', epoch_thres, eval_info_thres['test_accuracy'], train_info_thres['train_accuracy'], train_info_thres['loss'])
-        
-        scheduler_thres.step()
-    print("Thresholds chosen: {}".format(model.binarize_layer.thresholds))
-    log.log_message("Training Thresholds Finished. Best training accuracy was %s, best test accuracy was %s\n"%(str(best_train_acc_thres), str(best_test_acc_thres)))
+    
     # Detect dead nodes
     '''
         PRUNE
