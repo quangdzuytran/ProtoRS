@@ -62,7 +62,8 @@ def train_epoch(model: ProtoRS,
         ys_pred_cont.backward(loss_grad)
         # Update model parameters
         optimizer.step()
-
+        
+        model.prototype_layer.prototype_vectors.clamp_(0, 1)
         for layer in model.mllp.layer_list[:-1]:
             layer.clip()
         
