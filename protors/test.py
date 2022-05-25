@@ -17,7 +17,8 @@ def eval(model: ProtoRS,
         device,
         log: Log = None,  
         log_prefix: str = 'log_eval_epochs', 
-        progress_prefix: str = 'Eval Epoch'
+        progress_prefix: str = 'Eval Epoch',
+        binarize: bool = False
         ) -> dict:
     model = model.to(device)
 
@@ -40,7 +41,7 @@ def eval(model: ProtoRS,
         xs, ys = xs.to(device), ys.to(device)
 
         # Use the model to classify this batch of input data
-        ys_pred_cont, ys_pred_disc = model.forward(xs)
+        ys_pred_cont, ys_pred_disc = model.forward(xs, binarize)
         ys_prob = torch.softmax(ys_pred_disc, dim=1)
         ys_pred = torch.argmax(ys_prob, dim=1)
 

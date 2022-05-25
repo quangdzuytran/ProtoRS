@@ -128,9 +128,19 @@ def run_model(args=None):
         PROJECT
     '''
     # Project prototypes
+    name = 'projected'
+    projection_info, model = project(model, projectloader, device, args, log)
+    projected_model = deepcopy(model)
+    save_model_description(model, optimizer, scheduler, name, log)
+    eval_info_soft = eval(model, testloader, name+'_soft', device, log, binarize=False)
+    projected_test_acc_soft = eval_info_soft['test_accuracy']
+    log.log_values('log_epoch_overview', name+'_soft', projected_test_acc_soft, "n.a.", "n.a.")
+    eval_info_hard = eval(model, testloader, name+'_hard', device, log, binarize=True)
+    projected_test_acc_hard = eval_info_hard['test_accuracy']
+    log.log_values('log_epoch_overview', name+'_hard', projected_test_acc_hard, "n.a.", "n.a.")
     # Upsample prototypes
     # Visualize
-    return trained_model.to('cpu'), original_test_acc
+    return trained_model.to('cpu'), projected_model.to('cpu'), original_test_acc, projected_test_acc_soft, projected_test_acc_hard, projection_info
 
 if __name__ == '__main__':
     torch.autograd.set_detect_anomaly(True)
