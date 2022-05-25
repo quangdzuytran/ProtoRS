@@ -73,7 +73,7 @@ class STEFunction(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_output):
         grad_input = grad_output.clone()
-        print(torch.min(grad_input).item(), torch.max(grad_input).item())
+        #print(torch.min(grad_input).item(), torch.max(grad_input).item())
         #return grad_input
         return F.hardtanh(grad_input) # gradient clipping
 
