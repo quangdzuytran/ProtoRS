@@ -138,7 +138,6 @@ class ProtoRS(nn.Module):
         # Forward conv net
         features = self.net(xs)
         features = self.add_on(features)
-        bs, D, W, H = features.shape
         # Compute similarities and binarize
-        similarities = self.prototype_layer(features, W, H)
+        similarities = self.prototype_layer(features, 1, 1)
         return features, similarities

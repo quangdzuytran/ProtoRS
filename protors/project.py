@@ -23,7 +23,7 @@ def project(model: ProtoRS,
     # The goal is to find the latent patch that maximizes the focal similarity to each prototype
     # To do this we iterate through the train dataset and store for each prototype the most similar latent patch seen so far
     # Also store info about the image that was used for projection
-    global_max_proto_sim = {j: np.inf for j in range(model.num_prototypes)}
+    global_max_proto_sim = {j: -np.inf for j in range(model.num_prototypes)}
     global_max_patches = {j: None for j in range(model.num_prototypes)}
     global_max_info = {j: None for j in range(model.num_prototypes)}
 
@@ -77,12 +77,12 @@ def project(model: ProtoRS,
                     most_similar_patch = patches.view(D, W * H, W1, H1)[:, max_similarity_ix, :, :]
 
                     # Check if the latent patch is most similar for all data samples seen so far
-                    if max_similarity < global_max_proto_sim[j]:
+                    if max_similarity > global_max_proto_sim[j]:
                         global_max_proto_sim[j] = max_similarity
                         global_max_patches[j] = most_similar_patch
                         global_max_info[j] = {
                             'input_image_ix': i * batch_size + batch_i,
-                            'patch_ix': max_similarity.item(),  # Index in a flattened array of the feature map
+                            'patch_ix': max_similarity_ix.item(),  # Index in a flattened array of the feature map
                             'W': W,
                             'H': H,
                             'W1': W1,
@@ -99,7 +99,7 @@ def project(model: ProtoRS,
         # Copy the patches to the prototype layer weights
         projection = torch.cat(tuple(global_max_patches[j].unsqueeze(0) for j in range(model.num_prototypes)),
                                 dim=0,
-                                out=model.prototype_layer.prototype_vectors)
+                                out=model.prototype_layer.prototype_vectors.data)
         del projection
 
     return global_max_info, model
