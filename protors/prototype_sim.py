@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from protors.components import Binarize
+from protors.components import Binarize, EPSILON
 import math
 
 class FocalSimilarity(nn.Module):
@@ -30,7 +30,7 @@ class FocalSimilarity(nn.Module):
         #FIXME: below lines are for testing DSQ. Return in L2 distance unit
         #max_distance = F.max_pool2d(distances, kernel_size=(W, H))
         min_distance = -F.max_pool2d(-distances, kernel_size=(W, H))
-        return min_distance
+        return (256-min_distance)/256 #FIXME:scaled to [0,1]
         
 
     def _l2_convolution(self, xs):
@@ -63,16 +63,34 @@ class FocalSimilarity(nn.Module):
         # return torch.log((distances + 1) / (distances + self.epsilon))
         return 1 / (1 + distances + self.epsilon)
 
+class STEFunction(torch.autograd.Function):
+    """Sign function with Straight Through Estimator as gradient"""
+    @staticmethod
+    def forward(ctx, X):
+        y = torch.where(X > 0, torch.ones_like(X), -torch.ones_like(X))
+        return y
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        grad_input = grad_output.clone()
+        print(torch.min(grad_input).item(), torch.max(grad_input).item())
+        #return grad_input
+        return F.hardtanh(grad_input) # gradient clipping
 
 class Binarization(nn.Module):
     def __init__(self, num_prototypes):
         super().__init__()
         #self.threshold = nn.Parameter(0.5 * torch.rand(num_prototypes), requires_grad=True)
+        #self.threshold = nn.Parameter(data=torch.Tensor(0.9).float(), requires_grad=False)
         #print(self.threshold)
 
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
+        #print(self.threshold.item())
         #binarized = Binarize.apply(xs - self.threshold)
-        binarized = Binarize.apply(xs - 0.5)
+        #binarized = Binarize.apply(xs - 0.9)
+        sign = STEFunction.apply(xs - 0.9)
+        #return sign
+        binarized = (sign + 1) * 0.5
         return binarized        
         
         #FIXME: test if this layer is causing model not to diverge. Edit: it is
@@ -81,8 +99,6 @@ class Binarization(nn.Module):
 class RoundWithGradient(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x):
-        #delta = torch.max(x) - torch.min(x)
-        x = (x/2 + 0.5)
         return x.round() * 2 - 1
     @staticmethod
     def backward(ctx, g):
@@ -94,8 +110,9 @@ class DSQ(nn.Module):
     """
     def __init__(self, max_value, num_prototypes):
         super().__init__()
-        self.l = 0
-        self.u = max_value
+        self.threshold = nn.Parameter(data=torch.tensor(0.9).float(), requires_grad=False)
+        self.l = nn.Parameter(data=torch.tensor(0).float(), requires_grad=False)
+        self.u = nn.Parameter(data=torch.tensor(1).float(), requires_grad=False)
         self.alpha = nn.Parameter(data=torch.tensor(0.2).float(), requires_grad=True)
     
     def delta(self):
@@ -122,33 +139,44 @@ class DSQ(nn.Module):
         # save mem
         x =  ((x+1)/2) * delta + lower_bound
 
-        return 
+        return x
 
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
         # 1. Clip input using u and l
         #xs = (self.u - xs)/self.delta()
-        #print(torch.min(xs), torch.max(xs))
-        if (torch.min(xs) < self.l or torch.max(xs) > self.u):
-            print("\nOut of bound value detected! min = {0}, max = {1}".format(torch.min(xs), torch.max(xs)))
-        xs = (self.u - xs)/self.delta()
-        return xs
-        print(self.alpha)
-        alpha = self.alpha.clamp(0.0, 2.0)
+        #print(torch.min(xs).item(), torch.max(xs).item())
+        #if (torch.min(xs) < self.l or torch.max(xs) > self.u):
+            #print("\nOut of bound value detected! min = {0}, max = {1}".format(torch.min(xs), torch.max(xs)))
+        #xs = (self.u - xs)/self.delta()
+        #return xs
+        #print("")
+        #xs = xs - self.threshold
+        #print("")
+        #print(self.l.item(), self.u.item(), self.alpha.item(), self.threshold.item())
+        #print((self.u.item() + self.l.item()) / 2, self.alpha.item())
         self._clip(xs, self.l, self.u)
 
         # 2. Apply the Phi function
         delta = self.delta()
+        alpha = self.alpha + EPSILON
         mi = self.l + 0.5 * delta
-        xs = self.phi_function(xs, mi, delta, alpha)
-        #print(xs)
+        s = 1 / (1 - alpha)
+        k = (2/ alpha - 1).log() * (1/delta)
+        xs = (((xs - mi) * k ).tanh()) * s
+        #print(torch.min(xs), torch.max(xs))
 
         # 3. Keep consistent with standard binarization
-        #xs = RoundWithGradient.apply(xs)
+
+        deltaX = s*2
+        xs = (xs+s)/deltaX
+        #xs = (xs - self.l)/delta
+        xs = RoundWithGradient.apply(xs)
         #xs = Binarize.apply(xs)
+        #print(torch.min(xs), torch.max(xs))
 
         # 4. Dequantization - not necessary
-        #xs = self.dequantize(xs, self.l, delta)
-        xs = (xs + 1) * 0.5 # round from -1 or 1 to 0 or 1
-        #print(self.alpha)
+        xs = self.dequantize(xs, self.l, delta)
+        #xs = (xs + 1) * 0.5 # round from -1 or 1 to 0 or 1
+        #print(torch.min(xs), torch.max(xs))
 
         return xs

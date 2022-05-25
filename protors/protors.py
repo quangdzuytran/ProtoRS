@@ -32,9 +32,8 @@ class ProtoRS(nn.Module):
                                         args.W1,
                                         args.H1,
                                         self.epsilon)
-        #self.binarize_layer = Binarization(self.num_prototypes)
-        self.binarize_layer = DSQ(args.num_features,
-                                  self.num_prototypes)
+        self.binarize_layer = Binarization(self.num_prototypes)
+        #self.binarize_layer = DSQ(args.num_features, self.num_prototypes)
         # MLLP
         n_discrete_features = self.num_prototypes
         n_continuous_features = 0

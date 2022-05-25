@@ -57,19 +57,25 @@ def train_epoch(model: ProtoRS,
             # If disable_derivative_free_leaf_optim, leaves are optimized with gradient descent as well.
             # Compute the loss
             ys_prob = torch.softmax(ys_pred_disc, dim=1)
-            loss = F.cross_entropy(ys_pred_disc, ys)
+            loss = F.cross_entropy(ys_pred_disc, ys) #+ 3*(1-model.binarize_layer.threshold)
             #ys_prob = torch.softmax(ys_pred_cont, dim=1)
             #loss = F.cross_entropy(ys_pred_cont, ys)
         
         # (Manually) Compute the gradient    
         loss_grad = (ys_prob - ys_onehot) / nr_batches
         ys_pred_cont.backward(loss_grad)
+        #model.binarize_layer.threshold.backward(torch.tensor(-3)/nr_batches)
         # Update model parameters
         optimizer.step()
 
         for layer in model.mllp.layer_list[:-1]:
             layer.clip()
         model.prototype_layer.prototype_vectors.data.clamp_(min=0.0, max=1.0) #FIXME: clamp prototypes
+        #model.threshold.data.clamp_(0.0,1.0)
+        # model.binarize_layer.threshold.data.clamp_(0.0,1.0)
+        # model.binarize_layer.u.data.clamp_(0.0,1.0)
+        # model.binarize_layer.l.data.clamp_(0.0,1.0)
+        # model.binarize_layer.alpha.data.clamp_(0.0,1.0)
         
         # Count the number of correct classifications  
         ys_pred_max = torch.argmax(ys_prob, dim=1)      
