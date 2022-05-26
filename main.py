@@ -71,21 +71,21 @@ def run_model(args=None):
             log_learning_rates(optimizer, args, log)
             
             # Train model
-            train_info = train_epoch(model, trainloader, optimizer, epoch, device, log, log_prefix, binarize=args.binarize)
+            train_info = train_epoch(model, trainloader, optimizer, epoch, device, log, log_prefix)
             save_model(model, optimizer, scheduler, epoch, log, args)
             best_train_acc = save_best_train_model(model, optimizer, scheduler, best_train_acc, train_info['train_accuracy'], log)
             
             # Evaluate model
             if args.epochs>300:
                 if epoch%10==0 or epoch==args.epochs:
-                    eval_info = eval(model, testloader, epoch, device, log, binarize=args.binarize)
+                    eval_info = eval(model, testloader, epoch, device, log)
                     original_test_acc = eval_info['test_accuracy']
                     best_test_acc = save_best_test_model(model, optimizer, scheduler, best_test_acc, eval_info['test_accuracy'], log)
                     log.log_values('log_epoch_overview', epoch, eval_info['test_accuracy'], train_info['train_accuracy'], train_info['loss'])
                 else:
                     log.log_values('log_epoch_overview', epoch, "n.a.", train_info['train_accuracy'], train_info['loss'])
             else:
-                eval_info = eval(model, testloader, epoch, device, log, binarize=args.binarize)
+                eval_info = eval(model, testloader, epoch, device, log)
                 original_test_acc = eval_info['test_accuracy']
                 best_test_acc = save_best_test_model(model, optimizer, scheduler, best_test_acc, eval_info['test_accuracy'], log)
                 log.log_values('log_epoch_overview', epoch, eval_info['test_accuracy'], train_info['train_accuracy'], train_info['loss'])
@@ -132,7 +132,7 @@ def run_model(args=None):
     projection_info, model = project(model, projectloader, device, args, log)
     projected_model = deepcopy(model)
     save_model_description(model, optimizer, scheduler, name, log)
-    eval_info = eval(model, testloader, name, device, log, binarize=args.binarize)
+    eval_info = eval(model, testloader, name, device, log)
     projected_test_acc = eval_info['test_accuracy']
     log.log_values('log_epoch_overview', name, projected_test_acc, "n.a.", "n.a.")
     # Upsample prototypes

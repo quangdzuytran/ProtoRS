@@ -122,9 +122,6 @@ def get_args() -> argparse.Namespace:
                         action='store_true',
                         help='Flag that uses estimated gradient.'
                         )
-    parser.add_argument('--binarize', 
-                        action='store_true',
-                        help='Flag that uses binarization layer for similarities.')
     
     args = parser.parse_args()
     args.milestones = get_milestones(args)

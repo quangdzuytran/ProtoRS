@@ -115,8 +115,7 @@ class ProtoRS(nn.Module):
         return torch.load(directory_path + '/model.pth')  
 
     def forward(self, 
-                xs: torch.Tensor,
-                binarize: bool = False
+                xs: torch.Tensor
                 ) -> tuple:
         # Forward conv net
         features = self.net(xs)
@@ -124,12 +123,10 @@ class ProtoRS(nn.Module):
         bs, D, W, H = features.shape
         # Compute similarities
         similarities = self.prototype_layer(features, W, H).view(bs, self.num_prototypes)
+        binarized_similarities = self.binarize_layer(similarities)
         # Classify
-        if binarize:
-            binarized_similarities = self.binarize_layer(similarities)
-            out_cont, out_disc = self.mllp(binarized_similarities)
-        else:
-            out_cont, out_disc = self.mllp(similarities)
+        out_cont = self.mllp.continuous_forward(similarities)
+        out_disc = self.mllp.binarized_forward(binarized_similarities)
         return out_cont, out_disc
 
     def forward_partial(self,
@@ -138,6 +135,6 @@ class ProtoRS(nn.Module):
         # Forward conv net
         features = self.net(xs)
         features = self.add_on(features)
-        # Compute similarities and binarize
+        # Compute similarities
         similarities = self.prototype_layer(features, 1, 1)
         return features, similarities
