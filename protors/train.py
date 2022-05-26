@@ -19,8 +19,8 @@ def train_epoch(model: ProtoRS,
                 device,
                 log: Log = None,
                 log_prefix: str = 'log_train_epochs',
-                progress_prefix: str = 'Train Epoch'
-                ) -> dict:
+                progress_prefix: str = 'Train Epoch',
+                binarize: bool = False) -> dict:
     
     # Make sure the model is in eval mode
     model.eval()
@@ -50,7 +50,7 @@ def train_epoch(model: ProtoRS,
         ys_onehot = F.one_hot(ys, num_classes=model.num_classes)
 
         # Perform a forward pass through the network
-        ys_pred_cont, ys_pred_disc = model.forward(xs)
+        ys_pred_cont, ys_pred_disc = model.forward(xs, binarize)
 
         # Learn prototypes and network with gradient descent. 
         # If disable_derivative_free_leaf_optim, leaves are optimized with gradient descent as well.

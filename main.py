@@ -71,21 +71,21 @@ def run_model(args=None):
             log_learning_rates(optimizer, args, log)
             
             # Train model
-            train_info = train_epoch(model, trainloader, optimizer, epoch, device, log, log_prefix)
+            train_info = train_epoch(model, trainloader, optimizer, epoch, device, log, log_prefix, binarize=args.binarize)
             save_model(model, optimizer, scheduler, epoch, log, args)
             best_train_acc = save_best_train_model(model, optimizer, scheduler, best_train_acc, train_info['train_accuracy'], log)
             
             # Evaluate model
             if args.epochs>300:
                 if epoch%10==0 or epoch==args.epochs:
-                    eval_info = eval(model, testloader, epoch, device, log)
+                    eval_info = eval(model, testloader, epoch, device, log, binarize=args.binarize)
                     original_test_acc = eval_info['test_accuracy']
                     best_test_acc = save_best_test_model(model, optimizer, scheduler, best_test_acc, eval_info['test_accuracy'], log)
                     log.log_values('log_epoch_overview', epoch, eval_info['test_accuracy'], train_info['train_accuracy'], train_info['loss'])
                 else:
                     log.log_values('log_epoch_overview', epoch, "n.a.", train_info['train_accuracy'], train_info['loss'])
             else:
-                eval_info = eval(model, testloader, epoch, device, log)
+                eval_info = eval(model, testloader, epoch, device, log, binarize=args.binarize)
                 original_test_acc = eval_info['test_accuracy']
                 best_test_acc = save_best_test_model(model, optimizer, scheduler, best_test_acc, eval_info['test_accuracy'], log)
                 log.log_values('log_epoch_overview', epoch, eval_info['test_accuracy'], train_info['train_accuracy'], train_info['loss'])
@@ -132,15 +132,12 @@ def run_model(args=None):
     projection_info, model = project(model, projectloader, device, args, log)
     projected_model = deepcopy(model)
     save_model_description(model, optimizer, scheduler, name, log)
-    eval_info_soft = eval(model, testloader, name+'_soft', device, log, binarize=False)
-    projected_test_acc_soft = eval_info_soft['test_accuracy']
-    log.log_values('log_epoch_overview', name+'_soft', projected_test_acc_soft, "n.a.", "n.a.")
-    eval_info_hard = eval(model, testloader, name+'_hard', device, log, binarize=True)
-    projected_test_acc_hard = eval_info_hard['test_accuracy']
-    log.log_values('log_epoch_overview', name+'_hard', projected_test_acc_hard, "n.a.", "n.a.")
+    eval_info = eval(model, testloader, name, device, log, binarize=args.binarize)
+    projected_test_acc = eval_info['test_accuracy']
+    log.log_values('log_epoch_overview', name, projected_test_acc, "n.a.", "n.a.")
     # Upsample prototypes
     # Visualize
-    return trained_model.to('cpu'), projected_model.to('cpu'), original_test_acc, projected_test_acc_soft, projected_test_acc_hard, projection_info
+    return trained_model.to('cpu'), projected_model.to('cpu'), original_test_acc, projected_test_acc, projection_info
 
 if __name__ == '__main__':
     torch.autograd.set_detect_anomaly(True)
