@@ -65,12 +65,12 @@ class Binarization(nn.Module):
         super().__init__()
 
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
-        binarized = Binarize.apply(xs - 0.5)
-        return binarized
+        return xs
 
     def binarized_forward(self, xs: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
-            return self.forward(xs)
+            binarized = Binarize.apply(xs - 0.5)
+            return binarized
 
     
 
