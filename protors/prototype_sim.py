@@ -63,16 +63,14 @@ class FocalSimilarity(nn.Module):
 class Binarization(nn.Module):
     def __init__(self):
         super().__init__()
-        # self.thresholds = nn.Parameter(0.5 * torch.rand(num_prototypes), requires_grad=True)
-        # self.thresholds = nn.Parameter(torch.zeros(1), requires_grad=True)
 
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
-        return xs
+        binarized = Binarize.apply(xs - 0.5)
+        return binarized
 
     def binarized_forward(self, xs: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
-            binarized = Binarize.apply(xs - 0.5)
-            return binarized
+            return self.forward(xs)
 
     
 
