@@ -67,8 +67,12 @@ class Binarization(nn.Module):
         # self.thresholds = nn.Parameter(torch.zeros(1), requires_grad=True)
 
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
-        binarized = Binarize.apply(xs - 0.5)
-        return binarized
+        return xs
+
+    def binarized_forward(self, xs: torch.Tensor) -> torch.Tensor:
+        with torch.no_grad():
+            binarized = Binarize.apply(xs - 0.5)
+            return binarized
 
     
 

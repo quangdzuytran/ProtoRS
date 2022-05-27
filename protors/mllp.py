@@ -44,11 +44,7 @@ class MLLP(nn.Module):
             else:
                 x_cat = torch.cat([x, x_res], dim=1) if x_res is not None else x
                 x_res = x
-                if torch.isnan(x_cat).any().item():
-                    print("NaN input from layer:", layer.layer_type)
                 x = layer(x_cat)
-                if torch.isnan(x).any().item():
-                    print("NaN output from layer:", layer.layer_type)
         return x
 
     def binarized_forward(self, x):
