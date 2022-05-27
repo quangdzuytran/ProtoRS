@@ -203,7 +203,7 @@ def get_optimizer(model, args: argparse.Namespace) -> torch.optim.Optimizer:
                 {"params": params_to_train, "lr": args.lr_block, "weight_decay_rate": args.weight_decay, "momentum": args.momentum},
                 {"params": model.add_on.parameters(), "lr": args.lr_block, "weight_decay_rate": args.weight_decay, "momentum": args.momentum},
                 {"params": model.prototype_layer.parameters(), "lr": args.lr, "weight_decay_rate": 0, "momentum": 0}]
-            for layer in model.mllp.layer_list[:-1]:
+            for layer in model.mllp.layer_list:
                 paramlist.append({"params": layer.parameters(), "lr": args.lr_rule, "weight_decay_rate": args.weight_decay, "momentum": args.momentum})
         
         else:
@@ -213,7 +213,7 @@ def get_optimizer(model, args: argparse.Namespace) -> torch.optim.Optimizer:
                 {"params": model.add_on.parameters(), "lr": args.lr_block, "weight_decay_rate": args.weight_decay},
                 {"params": model.prototype_layer.parameters(), "lr": args.lr, "weight_decay_rate": 0}]
             for layer in model.mllp.layer_list:
-                paramlist.append({"params": layer.parameters(), "lr": args.lr_rule, "weight_decay_rate": args.weight_decay})               
+                paramlist.append({"params": layer.parameters(), "lr": args.lr_rule, "weight_decay_rate": args.weight_decay})              
     
     elif args.net == 'densenet121':
         # freeze densenet121 except last convolutional layer
