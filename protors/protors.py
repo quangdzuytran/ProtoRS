@@ -14,10 +14,7 @@ class ProtoRS(nn.Module):
                  num_classes: int,
                  feature_net: torch.nn.Module,
                  args: argparse.Namespace,
-                 add_on_layers: nn.Module = nn.Identity(),
-                 use_not: bool = False,
-                 left: float = None,
-                 right: float = None,
+                 add_on_layers: nn.Module = nn.Identity()
                  ):
         super().__init__()
         self.num_classes = num_classes
@@ -35,17 +32,10 @@ class ProtoRS(nn.Module):
                                         self.epsilon)
         self.binarize_layer = Binarization()
         # MLLP
-        n_discrete_features = self.num_prototypes
-        n_continuous_features = 0
-        # n_discrete_features = 0
-        # n_continuous_features = self.num_prototypes
-        self.rs_dim_list = [(n_discrete_features, n_continuous_features), 1] + \
+        self.rs_dim_list = [self.num_prototypes] + \
                             list(map(int, args.structure.split('@'))) + \
                             [self.num_classes]
         self.mllp = MLLP(dim_list=self.rs_dim_list, 
-                        use_not=use_not, 
-                        left=left, 
-                        right=right, 
                         estimated_grad=args.estimated_grad)
     
     @property
