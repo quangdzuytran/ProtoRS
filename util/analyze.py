@@ -17,6 +17,9 @@ def analyze_output_shape(model: ProtoRS, trainloader: DataLoader, log: Log, devi
         log.log_message("Prototypes shape: "+str(model.prototype_layer.prototype_vectors.shape))
 
 def log_learning_rates(optimizer, args: argparse.Namespace, log: Log):
+    if args.binarize:
+        log.log_message("Learning rate rule set: "+str(optimizer.param_groups[-1]['lr']))
+        return
     log.log_message("Learning rate net: "+str(optimizer.param_groups[0]['lr']))
     if 'densenet121' in args.net or 'resnet50' in args.net:
         log.log_message("Learning rate block: "+str(optimizer.param_groups[1]['lr']))
