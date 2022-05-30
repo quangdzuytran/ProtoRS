@@ -205,7 +205,7 @@ def get_optimizer(model, args: argparse.Namespace) -> torch.optim.Optimizer:
                 {"params": params_to_freeze, "lr": args.lr_net, "weight_decay_rate": args.weight_decay, "momentum": args.momentum},
                 {"params": params_to_train, "lr": args.lr_block, "weight_decay_rate": args.weight_decay, "momentum": args.momentum},
                 {"params": model.add_on.parameters(), "lr": args.lr_block, "weight_decay_rate": args.weight_decay, "momentum": args.momentum},
-                {"params": model.prototype_layer.parameters(), "lr": args.lr, "weight_decay_rate": 0, "momentum": 0}]
+                {"params": model.prototype_layer.parameters(), "lr": args.lr, "weight_decay_rate": 0, "momentum": 0}] if not args.binarize else []
             for layer in model.mllp.layer_list:
                 paramlist.append({"params": layer.parameters(), "lr": args.lr_rule, "weight_decay_rate": args.weight_decay, "momentum": args.momentum})
         
@@ -214,7 +214,7 @@ def get_optimizer(model, args: argparse.Namespace) -> torch.optim.Optimizer:
                 {"params": params_to_freeze, "lr": args.lr_net, "weight_decay_rate": args.weight_decay},
                 {"params": params_to_train, "lr": args.lr_block, "weight_decay_rate": args.weight_decay},
                 {"params": model.add_on.parameters(), "lr": args.lr_block, "weight_decay_rate": args.weight_decay},
-                {"params": model.prototype_layer.parameters(), "lr": args.lr, "weight_decay_rate": 0}]
+                {"params": model.prototype_layer.parameters(), "lr": args.lr, "weight_decay_rate": 0}] if not args.binarize else []
             for layer in model.mllp.layer_list:
                 paramlist.append({"params": layer.parameters(), "lr": args.lr_rule, "weight_decay_rate": args.weight_decay})               
     
@@ -230,7 +230,7 @@ def get_optimizer(model, args: argparse.Namespace) -> torch.optim.Optimizer:
             {"params": params_to_freeze, "lr": args.lr_net, "weight_decay_rate": args.weight_decay},
             {"params": params_to_train, "lr": args.lr_block, "weight_decay_rate": args.weight_decay},
             {"params": model.add_on.parameters(), "lr": args.lr_block, "weight_decay_rate": args.weight_decay},
-            {"params": model.prototype_layer.parameters(), "lr": args.lr, "weight_decay_rate": 0}]
+            {"params": model.prototype_layer.parameters(), "lr": args.lr, "weight_decay_rate": 0}] if not args.binarize else []
         for layer in model.mllp.layer_list:
             paramlist.append({"params": layer.parameters(), "lr": args.lr_rule, "weight_decay_rate": args.weight_decay})
 
@@ -238,7 +238,7 @@ def get_optimizer(model, args: argparse.Namespace) -> torch.optim.Optimizer:
         paramlist = [
             {"params": model.net.parameters(), "lr": args.lr_net, "weight_decay_rate": args.weight_decay},
             {"params": model.add_on.parameters(), "lr": args.lr_block, "weight_decay_rate": args.weight_decay},
-            {"params": model.prototype_layer.parameters(), "lr": args.lr, "weight_decay_rate": 0}]
+            {"params": model.prototype_layer.parameters(), "lr": args.lr, "weight_decay_rate": 0}] if not args.binarize else []
         for layer in model.mllp.layer_list:
             paramlist.append({"params": layer.parameters(), "lr": args.lr_rule, "weight_decay_rate": args.weight_decay})
     

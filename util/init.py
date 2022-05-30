@@ -34,13 +34,14 @@ def init_model(model: ProtoRS, optimizer, scheduler, device, args: argparse.Name
         except:
             epoch=args.epochs+1
         print("Train further from epoch: ", epoch, flush=True)
-        optimizer.load_state_dict(torch.load(args.state_dict_dir_model+'/optimizer_state.pth', map_location=device))
+        if not args.binarize:
+            optimizer.load_state_dict(torch.load(args.state_dict_dir_model+'/optimizer_state.pth', map_location=device))
 
         if epoch>args.freeze_epochs:
             for parameter in model.net.parameters():
                 parameter.requires_grad = True
         
-        if os.path.isfile(args.state_dict_dir_model+'/scheduler_state.pth'):
+        if not args.binarize and os.path.isfile(args.state_dict_dir_model+'/scheduler_state.pth'):
             # scheduler.load_state_dict(torch.load(args.state_dict_dir_model+'/scheduler_state.pth'))
             # print(scheduler.state_dict(),flush=True)
             scheduler.last_epoch = epoch - 1
