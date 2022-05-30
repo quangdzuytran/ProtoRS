@@ -14,7 +14,7 @@ class FocalSimilarity(nn.Module):
         self.epsilon = epsilon
         self.num_features = num_features
         prototypes_shape = (num_prototypes, num_features, w_1, h_1)
-        self.prototype_vectors = nn.Parameter(torch.randn(prototypes_shape), requires_grad=True)
+        self.prototype_vectors = nn.Parameter(torch.rand(prototypes_shape), requires_grad=True)
 
     def forward(self, xs: torch.Tensor, W: int, H: int) -> torch.Tensor:
         distances = self._l2_convolution(xs)
@@ -56,21 +56,22 @@ class FocalSimilarity(nn.Module):
     def _distances_to_similarities(self, distances):
         # return torch.log((distances + 1) / (distances + self.epsilon))
         # return 1 / (1 + distances + self.epsilon)
-        similarities = 1 - torch.sqrt(torch.relu(distances / torch.tensor(self.num_features)) + self.epsilon)
+        similarities = 1 - torch.sqrt(distances / torch.tensor(self.num_features) + self.epsilon)
         return similarities.clamp(0, 1)
 
 
 class Binarization(nn.Module):
-    def __init__(self):
+    def __init__(self, num_prototypes):
         super().__init__()
+        self.thresholds = nn.Parameter(torch.rand(num_prototypes), requires_grad=True)
 
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
-        binarized = Binarize.apply(xs - 0.5)
-        return binarized
+        return torch.where(xs > self.thresholds, xs, torch.zeros_like(xs))
 
     def binarized_forward(self, xs: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
-            return self.forward(xs)
+            binarized = Binarize.apply(xs - self.thresholds)
+            return binarized
 
     
 
