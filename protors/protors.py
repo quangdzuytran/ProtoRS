@@ -30,7 +30,7 @@ class ProtoRS(nn.Module):
                                         args.W1,
                                         args.H1,
                                         self.epsilon)
-        self.binarize_layer = Binarization(self.num_prototypes)
+        self.binarize_layer = Binarization()
         # MLLP
         self.rs_dim_list = [self.num_prototypes] + \
                             list(map(int, args.structure.split('@'))) + \
