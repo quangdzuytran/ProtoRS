@@ -138,7 +138,7 @@ def run_model(args=None):
     log.log_values('log_epoch_overview', name, projected_test_acc, "n.a.", "n.a.")
 
     # Upsample prototypes
-    upsample_prototypes(model, project_info, device, args, log)
+    upsample_prototypes(model, projection_info, device, args, log)
 
     # TODO: Visualize
     
