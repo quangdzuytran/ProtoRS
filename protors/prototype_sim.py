@@ -64,7 +64,7 @@ class Binarization(nn.Module):
     def __init__(self):
         super().__init__()
         self.threshold = 0.5
-        self.k = 25
+        self.k = 50
 
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
         return torch.sigmoid(self.k * (xs - self.threshold))
