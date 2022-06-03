@@ -10,6 +10,7 @@ from util.analyze import *
 from protors.train import train_epoch
 from protors.test import eval
 from protors.project import project
+from main_upsample import upsample_prototypes
 
 import torch
 from shutil import copy
@@ -135,8 +136,12 @@ def run_model(args=None):
     eval_info = eval(model, testloader, name, device, log)
     projected_test_acc = eval_info['test_accuracy']
     log.log_values('log_epoch_overview', name, projected_test_acc, "n.a.", "n.a.")
+
     # Upsample prototypes
-    # Visualize
+    upsample_prototypes(model, project_info, device, args, log)
+
+    # TODO: Visualize
+    
     return trained_model.to('cpu'), projected_model.to('cpu'), original_test_acc, projected_test_acc, projection_info
 
 if __name__ == '__main__':
