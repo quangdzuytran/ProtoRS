@@ -63,7 +63,7 @@ class FocalSimilarity(nn.Module):
 class Binarization(nn.Module):
     def __init__(self):
         super().__init__()
-        self.threshold = 0.5
+        self.threshold = 0.8
         self.k = 50
 
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
