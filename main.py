@@ -10,7 +10,7 @@ from util.analyze import *
 from protors.train import train_epoch
 from protors.test import eval
 from protors.project import project
-from main_upsample import upsample_prototypes
+from explain_global import explain_global
 
 import torch
 from shutil import copy
