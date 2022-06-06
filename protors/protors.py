@@ -2,6 +2,8 @@ import argparse
 import os
 import pickle
 from sklearn.preprocessing import binarize
+import sys
+from collections import defaultdict
 
 import torch
 import torch.nn as nn
@@ -30,7 +32,7 @@ class ProtoRS(nn.Module):
                                         args.W1,
                                         args.H1,
                                         self.epsilon)
-        self.binarize_layer = Binarization()
+        self.binarize_layer = Binarization(self.num_prototypes)
         # MLLP
         self.rs_dim_list = [self.num_prototypes] + \
                             list(map(int, args.structure.split('@'))) + \
@@ -129,3 +131,114 @@ class ProtoRS(nn.Module):
         # Compute similarities
         similarities = self.prototype_layer(features, 1, 1)
         return features, similarities
+
+    # adapted from RRL
+    def detect_dead_node(self, data_loader=None, device_id=torch.device('cpu')): # change self.net to self.mllp and add argument 'device'
+        with torch.no_grad():
+            for layer in self.mllp.layer_list[:-1]:
+                layer.node_activation_cnt = torch.zeros(layer.output_dim, dtype=torch.double, device=device_id)
+                layer.forward_tot = 0
+            for x, y in data_loader:
+                # forward up until mllp
+                x = x.cuda(device_id)
+                features = self.net(x)
+                features = self.add_on(features)
+                bs, D, W, H = features.shape
+                similarities = self.prototype_layer(features, W, H).view(bs, self.num_prototypes)
+                x = self.binarize_layer.binarized_forward(similarities)
+
+                # record activation numbers
+                x_res = None # x residual / skip connection
+                for i, layer in enumerate(self.mllp.layer_list[:-1]):
+                    if i <= 1:
+                        x = layer.binarized_forward(x)
+                    else:
+                        x_cat = torch.cat([x, x_res], dim=1) if x_res is not None else x
+                        x_res = x
+                        x = layer.binarized_forward(x_cat)
+                    layer.node_activation_cnt += torch.sum(x, dim=0)
+                    layer.forward_tot += x.shape[0]
+
+    def rule_print(self, label_name, train_loader, file=sys.stdout, device=torch.device('cpu')):
+        # FIXME: these hasattr() are just hotfixes, add these attributes to the corresponding layer
+        if not hasattr(self.binarize_layer, 'dim2id'):
+            self.binarize_layer.__setattr__('dim2id', {i: i for i in range(self.num_prototypes)})
+        if not hasattr(self.binarize_layer, 'layer_type'):
+            self.binarize_layer.__setattr__('layer_type', 'binarization')
+        layer_list = nn.ModuleList([self.binarize_layer]) + self.mllp.layer_list # imo this is better then reindexing all the layers
+
+        # pruning/detect dead nodes
+        if layer_list[1] is None and train_loader is None:
+            raise Exception("Need train_loader for the dead nodes detection.")
+        print('[+] Detecting dead nodes...')
+        if layer_list[1].node_activation_cnt is None:
+            self.detect_dead_node(train_loader, device)
+
+        # extract rules from binarization layer -> first logical layer
+        print('[+] Extracting rules from model...')
+        labels = self.prototype_layer.get_prototype_labels()
+        layer_list[1].get_rules(layer_list[0], None)
+        layer_list[1].get_rule_description((None, labels))
+
+        # the second logical layer (if exists) has no skip connections
+        if len(layer_list) >= 4:
+            layer_list[2].get_rules(layer_list[1], None)
+            layer_list[2].get_rule_description((None, layer_list[1].rule_name), wrap=True)
+
+        # network with 3 hidden layers and more has skip connections 
+        if len(layer_list) >= 5:
+            for i in range(3, len(layer_list) - 1):
+                layer_list[i].get_rules(layer_list[i - 1], layer_list[i - 2])
+                layer_list[i].get_rule_description(
+                    (layer_list[i - 2].rule_name, layer_list[i - 1].rule_name), wrap=True)
+
+        # get the dim2id dictionary of the linear layer by merging the dim2id of the last logical layer + the skip connection layer 
+        prev_layer = layer_list[-2]
+        skip_connect_layer = layer_list[-3]
+        always_act_pos = (prev_layer.node_activation_cnt == prev_layer.forward_tot) # boolean for 'No dead node'
+        if skip_connect_layer.layer_type == 'union':
+            # similar code to UnionLayer's get_rules()
+            shifted_dim2id = {(k + prev_layer.output_dim): (-2, v) for k, v in skip_connect_layer.dim2id.items()}
+            prev_dim2id = {k: (-1, v) for k, v in prev_layer.dim2id.items()}
+            merged_dim2id = defaultdict(lambda: -1, {**shifted_dim2id, **prev_dim2id})
+            always_act_pos = torch.cat(
+                [always_act_pos, (skip_connect_layer.node_activation_cnt == skip_connect_layer.forward_tot)])
+        else:
+            merged_dim2id = {k: (-1, v) for k, v in prev_layer.dim2id.items()}
+
+        Wl, bl = list(layer_list[-1].parameters()) # weights and ... biases?
+        bl = torch.sum(Wl.T[always_act_pos], dim=0) + bl
+        Wl = Wl.cpu().detach().numpy()
+        bl = bl.cpu().detach().numpy()
+
+        marked = defaultdict(lambda: defaultdict(float))
+        rid2dim = {}
+        # iterate over the nodes/labels
+        for label_id, wl in enumerate(Wl):
+            # iterate over the weights of each label
+            for i, w in enumerate(wl):
+                rid = merged_dim2id[i] # look up rule ID from the merged dictionary
+                if rid == -1 or rid[1] == -1: # rules with dead nodes
+                    continue
+                marked[rid][label_id] += w
+                rid2dim[rid] = i % prev_layer.output_dim
+
+        # ???
+        kv_list = sorted(marked.items(), key=lambda x: max(map(abs, x[1].values())), reverse=True)
+        print('[+] Printing {} rule(s)...'.format(len(kv_list)))
+        print('RID', end='\t', file=file)
+        for i, ln in enumerate(label_name):
+            print('{}(b={:.4f})'.format(ln, bl[i]), end='\t', file=file)
+        print('Support\tRule', file=file)
+        for k, v in kv_list:
+            rid = k
+            print(rid, end='\t', file=file)
+            for li in range(len(label_name)):
+                print('{:.4f}'.format(v[li]), end='\t', file=file)
+            now_layer = layer_list[-1 + rid[0]]
+            # print('({},{})'.format(now_layer.node_activation_cnt[rid2dim[rid]].item(), now_layer.forward_tot))
+            print('{:.4f}'.format((now_layer.node_activation_cnt[rid2dim[rid]] / now_layer.forward_tot).item()),
+                  end='\t', file=file)
+            print(now_layer.rule_name[rid[1]], end='\n', file=file)
+        print('#' * 60, file=file)
+        return kv_list

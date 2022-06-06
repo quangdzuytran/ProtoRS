@@ -12,11 +12,11 @@ import torch.optim
 """
 def get_args() -> argparse.Namespace:
 
-    parser = argparse.ArgumentParser('Train a ProtoTree')
+    parser = argparse.ArgumentParser('Train a ProtoRS model')
     parser.add_argument('--dataset',
                         type=str,
                         default='CUB-200-2011',
-                        help='Data set on which the ProtoTree should be trained')
+                        help='Data set on which the ProtoRS model should be trained')
     parser.add_argument("--structure",
                         type=str,
                         default='256@128',
@@ -125,6 +125,7 @@ def get_args() -> argparse.Namespace:
     
     args = parser.parse_args()
     args.milestones = get_milestones(args)
+    args.rule_file = args.log_dir + '/ruleset.txt'
     return args
 
 """

@@ -33,7 +33,7 @@ def init_model(model: ProtoRS, optimizer, scheduler, device, args: argparse.Name
             epoch = int(args.state_dict_dir_model.split('epoch_')[-1]) + 1
         except:
             epoch=args.epochs+1
-        print("Train further from epoch: ", epoch, flush=True)
+        #print("Train further from epoch: ", epoch, flush=True)
         optimizer.load_state_dict(torch.load(args.state_dict_dir_model+'/optimizer_state.pth', map_location=device))
 
         if epoch>args.freeze_epochs:

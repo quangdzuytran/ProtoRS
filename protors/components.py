@@ -74,20 +74,26 @@ class BinarizeLayer(nn.Module):
 
     def get_bound_name(self, feature_name, mean=None, std=None):
         bound_name = []
+        # get names of discrete features
         for i in range(self.input_dim[0]):
             bound_name.append(feature_name[i])
+        # if NOT operators are allowed, attach '~' to the names above, as separate features
         if self.use_not:
             for i in range(self.input_dim[0]):
                 bound_name.append('~' + feature_name[i])
-        if self.input_dim[1] > 0:
+        # get names of (discretized) continuous features
+        if self.input_dim[1] > 0: 
+            # lowerbounds then upperbounds
             for c, op in [(self.cl, '>'), (self.cr, '<')]:
-                c = c.detach().cpu().numpy()
+                c = c.detach().cpu().numpy() # list of all (lower or upper) bounds of all features
+                # for each feature i
                 for i, ci in enumerate(c.T):
-                    fi_name = feature_name[self.input_dim[0] + i]
+                    fi_name = feature_name[self.input_dim[0] + i] # get feature i's name
+                    # for each bound assigned to feature i
                     for j in ci:
                         if mean is not None and std is not None:
-                            j = j * std[fi_name] + mean[fi_name]
-                        bound_name.append('{} {} {:.3f}'.format(fi_name, op, j))
+                            j = j * std[fi_name] + mean[fi_name] # inverse standardization
+                        bound_name.append('{} {} {:.3f}'.format(fi_name, op, j)) # feature names + '<' or '>' + bound value
         return bound_name
 
 
@@ -203,58 +209,57 @@ class DisjunctionLayer(nn.Module):
     def clip(self):
         self.W.data.clamp_(0.0, 1.0)
 
-
+# TODO: move this function into ProtoRS itself, for encapsulation sake
 def extract_rules(prev_layer, skip_connect_layer, layer, pos_shift=0):
-    dim2id = defaultdict(lambda: -1)
-    rules = {}
-    tmp = 0
-    rule_list = []
-    Wb = (layer.W > 0.5).type(torch.int).detach().cpu().numpy()
+    """Given 2 consecutive layers, generate rules conferred by the weights between them. 
+    This function was copied and modified from RRL, since there are no discrete features to worry about.
+    Comments were also added to aid comprehension.
 
-    if skip_connect_layer is not None:
+    Args:
+        prev_layer (torch.nn.Module): the preceding layer
+        skip_connect_layer (torch.nn.Module): the layer that was linked to the current layer by a skip connection
+        layer (torch.nn.Module): the current layer
+        pos_shift (int, optional): because conjunctive and disjunctive layer are concatenated together, this number is used to marked the start of the disjunctive layer. Defaults to 0.
+
+    Returns:
+        _type_: _description_
+    """
+    dim2id = defaultdict(lambda: -1) # key: node id (after concatenation); value: rule index
+    rules = {} # a dictionary to detect duplicate rules
+    tmp = 0 # unique rules count, used to index the rules inside the rule_list
+    rule_list = [] # the list of rules to be return
+    Wb = (layer.W > 0.5).type(torch.int).detach().cpu().numpy() # binarize the weights
+
+    # inherit the dim2d dictionary of the previous layer(s)
+    if skip_connect_layer is not None: # if there is skip connection to the current layer
+        # value = (-2,v) means that this connection comes from the skip connection layer
         shifted_dim2id = {(k + prev_layer.output_dim): (-2, v) for k, v in skip_connect_layer.dim2id.items()}
         prev_dim2id = {k: (-1, v) for k, v in prev_layer.dim2id.items()}
         merged_dim2id = defaultdict(lambda: -1, {**shifted_dim2id, **prev_dim2id})
     else:
+        # value = (-1,v) means that this connection comes from the preceding layer
         merged_dim2id = {k: (-1, v) for k, v in prev_layer.dim2id.items()}
 
+    # iterate over each node
     for ri, row in enumerate(Wb):
+        # node_activation_cnt is initialized in ProtoRS.detect_dead_node()
         if layer.node_activation_cnt[ri + pos_shift] == 0 or layer.node_activation_cnt[ri + pos_shift] == layer.forward_tot:
-            dim2id[ri + pos_shift] = -1
+            dim2id[ri + pos_shift] = -1 # this probably means that value = -1 marks a dead node 
             continue
-        rule = {}
-        bound = {}
-        if prev_layer.layer_type == 'binarization' and prev_layer.input_dim[1] > 0:
-            c = torch.cat((prev_layer.cl.t().reshape(-1), prev_layer.cr.t().reshape(-1))).detach().cpu().numpy()
+        rule = {} # a dictionary of rules for the current node, each rule is a list of node ids from the previous layer having positive connection to this current node
+        
+        # iterate over each weight of a node, i: previous node index (before concatenation), w: weight of prev node i -> current node ri
         for i, w in enumerate(row):
             if w > 0 and merged_dim2id[i][1] != -1:
-                if prev_layer.layer_type == 'binarization' and i >= prev_layer.disc_num:
-                    ci = i - prev_layer.disc_num
-                    bi = ci // prev_layer.n
-                    if bi not in bound:
-                        bound[bi] = [i, c[ci]]
-                        rule[(-1, i)] = 1
-                    else:
-                        if (ci < c.shape[0] // 2 and layer.layer_type == 'conjunction') or \
-                           (ci >= c.shape[0] // 2 and layer.layer_type == 'disjunction'):
-                            func = max
-                        else:
-                            func = min
-                        bound[bi][1] = func(bound[bi][1], c[ci])
-                        if bound[bi][1] == c[ci]:
-                            del rule[(-1, bound[bi][0])]
-                            rule[(-1, i)] = 1
-                            bound[bi][0] = i
-                else:
-                    rule[merged_dim2id[i]] = 1
-        rule = tuple(sorted(rule.keys()))
-        if rule not in rules:
-            rules[rule] = tmp
+                rule[merged_dim2id[i]] = 1
+        rule = tuple(sorted(rule.keys())) # sort the connection list by previous node's index
+        if rule not in rules: # is a unique list of connections
+            rules[rule] = tmp # assign index for rule
             rule_list.append(rule)
             dim2id[ri + pos_shift] = tmp
-            tmp += 1
+            tmp += 1 # increment unique rules count
         else:
-            dim2id[ri + pos_shift] = rules[rule]
+            dim2id[ri + pos_shift] = rules[rule] # reuse index of existing list of connections (previous layer's node IDs)
     return dim2id, rule_list
 
 
@@ -289,12 +294,15 @@ class UnionLayer(nn.Module):
         self.dis_layer.clip()
 
     def get_rules(self, prev_layer, skip_connect_layer):
+        # initialization to prune rule with dead nodes
         self.con_layer.forward_tot = self.dis_layer.forward_tot = self.forward_tot
         self.con_layer.node_activation_cnt = self.dis_layer.node_activation_cnt = self.node_activation_cnt
 
+        # extract rules from conjunctive and disjunctive layer
         con_dim2id, con_rule_list = extract_rules(prev_layer, skip_connect_layer, self.con_layer)
         dis_dim2id, dis_rule_list = extract_rules(prev_layer, skip_connect_layer, self.dis_layer, self.con_layer.W.shape[0])
 
+        # concatenate rule ids together
         shift = max(con_dim2id.values()) + 1
         dis_dim2id = {k: (-1 if v == -1 else v + shift) for k, v in dis_dim2id.items()}
         dim2id = defaultdict(lambda: -1, {**con_dim2id, **dis_dim2id})
@@ -308,10 +316,12 @@ class UnionLayer(nn.Module):
     def get_rule_description(self, prev_rule_name, wrap=False):
         self.rule_name = []
         for rl, op in zip(self.rule_list, ('&', '|')):
+            # iterate over rules in the list
             for rule in rl:
                 name = ''
+                # iterate over the rule a.k.a the set of previous node's IDs
                 for i, ri in enumerate(rule):
                     op_str = ' {} '.format(op) if i != 0 else ''
-                    var_str = ('({})' if wrap else '{}').format(prev_rule_name[2 + ri[0]][ri[1]])
+                    var_str = ('({})' if wrap else '{}').format(prev_rule_name[2 + ri[0]][ri[1]]) # wrap this rule around previous layer's rules
                     name += op_str + var_str
                 self.rule_name.append(name)

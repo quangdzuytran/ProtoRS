@@ -141,8 +141,8 @@ def run_model(args=None):
     projected_test_acc = eval_info['test_accuracy']
     log.log_values('log_epoch_overview', name, projected_test_acc, "n.a.", "n.a.")
 
-    # Upsample prototypes
-    upsample_prototypes(model, projection_info, device, args, log)
+    # Upscaling and printing rule set
+    explain_global(model, projection_info, device, args, log)
 
     # TODO: Visualize
     

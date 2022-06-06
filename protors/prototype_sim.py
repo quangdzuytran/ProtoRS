@@ -58,12 +58,19 @@ class FocalSimilarity(nn.Module):
         # return 1 / (1 + distances + self.epsilon)
         similarities = 1 - torch.sqrt(distances / torch.tensor(self.num_features) + self.epsilon)
         return similarities.clamp(0, 1)
+    
+    def get_prototype_labels(self):
+        num_prototypes = self.prototype_vectors.shape[0]
+        padding_width = len(str(num_prototypes))
+        return ['p_'+ str(i).rjust(padding_width,'0') for i in range(num_prototypes)]
 
 
 class Binarization(nn.Module):
-    def __init__(self):
+    def __init__(self, num_prototypes):
         super().__init__()
-        self.threshold = 0.8
+        self.layer_type = 'binarization'
+        self.dim2id = {i: i for i in range(num_prototypes)}
+        self.threshold = 0.9
         self.k = 50
 
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
