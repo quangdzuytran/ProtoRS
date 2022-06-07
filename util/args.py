@@ -122,6 +122,10 @@ def get_args() -> argparse.Namespace:
                         action='store_true',
                         help='Flag that uses estimated gradient.'
                         )
+    parser.add_argument('--soft_epochs',
+                        type=int,
+                        default=50,
+                        help='Number of epochs where soft threshold (sigmoid) will be used')
     
     args = parser.parse_args()
     args.milestones = get_milestones(args)

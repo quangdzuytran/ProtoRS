@@ -71,6 +71,14 @@ def run_model(args=None):
             freeze(model, epoch, params_to_freeze, params_to_train, args, log)
             log_learning_rates(optimizer, args, log)
             
+            # Changing between soft and hard threshold
+            if epoch == args.soft_epochs + 1:
+                model.binarize_layer.hard_threshold = True
+            if model.binarize_layer.hard_threshold:
+                log.log_message("Threshold: Hard")
+            else:
+                log.log_message("Threshold: Soft")
+            
             # Train model
             train_info = train_epoch(model, trainloader, optimizer, epoch, device, log, log_prefix)
             save_model(model, optimizer, scheduler, epoch, log, args)

@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from protors.components import Binarize
 
-class FocalSimilarity(nn.Module):
+class Similarity(nn.Module):
     def __init__(self, 
                  num_prototypes: int, 
                  num_features: int, 
@@ -70,15 +70,16 @@ class Binarization(nn.Module):
         super().__init__()
         self.layer_type = 'binarization'
         self.dim2id = {i: i for i in range(num_prototypes)}
-        self.threshold = 0.9
+        self.threshold = 0.8
         self.k = 50
+        self.hard_threshold = False
 
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
         return torch.sigmoid(self.k * (xs - self.threshold))
 
-    def binarized_forward(self, xs: torch.Tensor, hard_threshold: bool = False) -> torch.Tensor:
+    def binarized_forward(self, xs: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
-            if hard_threshold:
+            if self.hard_threshold:
                 return Binarize.apply(xs - self.threshold)
             else:
                 return self.forward(xs)

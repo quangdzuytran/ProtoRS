@@ -1,7 +1,6 @@
 import argparse
 import os
 import pickle
-from sklearn.preprocessing import binarize
 import sys
 from collections import defaultdict
 
@@ -9,7 +8,7 @@ import torch
 import torch.nn as nn
 
 from protors.mllp import MLLP
-from protors.prototype_sim import FocalSimilarity, Binarization
+from protors.prototype_sim import Similarity, Binarization
 
 class ProtoRS(nn.Module):
     def __init__(self, 
@@ -27,7 +26,7 @@ class ProtoRS(nn.Module):
         self.epsilon = 1e-4
         self.num_prototypes = args.num_prototypes
         self.prototype_shape = (args.W1, args.H1, args.num_features)
-        self.prototype_layer = FocalSimilarity(self.num_prototypes,
+        self.prototype_layer = Similarity(self.num_prototypes,
                                         args.num_features,
                                         args.W1,
                                         args.H1,
