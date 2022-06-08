@@ -70,7 +70,7 @@ def run_model(args=None):
             # Freeze (part of) network for some epochs if indicated in args
             freeze(model, epoch, params_to_freeze, params_to_train, args, log)
             log_learning_rates(optimizer, args, log)
-            
+
             # Changing between soft and hard threshold
             if epoch == args.soft_epochs + 1:
                 model.binarize_layer.hard_threshold = True
@@ -100,7 +100,7 @@ def run_model(args=None):
                 log.log_values('log_epoch_overview', epoch, eval_info['test_accuracy'], train_info['train_accuracy'], train_info['loss'])
             
             # Project prototypes
-            if epoch >= args.freeze_epochs and epoch != args.epochs and epoch % 10 == 0:
+            if epoch >= args.freeze_epochs and epoch != args.epochs and epoch % args.projection_cycle == 0:
                 _, model = project(model, projectloader, device, args, log)
                 eval_info = eval(model, testloader, epoch, device, log)
                 original_test_acc = eval_info['test_accuracy']

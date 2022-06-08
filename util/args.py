@@ -126,6 +126,10 @@ def get_args() -> argparse.Namespace:
                         type=int,
                         default=50,
                         help='Number of epochs where soft threshold (sigmoid) will be used')
+    parser.add_argument('projection_cycle',
+                        type=int,
+                        default=10,
+                        help='Cycle (in epochs) for prototype projection after model is unfrozen')
     
     args = parser.parse_args()
     args.milestones = get_milestones(args)
