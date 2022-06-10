@@ -133,7 +133,10 @@ def get_args() -> argparse.Namespace:
     
     args = parser.parse_args()
     args.milestones = get_milestones(args)
-    args.rule_file = args.log_dir + '/ruleset.txt'
+    args.no_reeval = True
+    args.no_upsample = False
+    args.no_ruleprint = False
+    args.rule_file = args.log_dir + '/ruleset.csv'
     return args
 
 """
