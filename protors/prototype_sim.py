@@ -56,7 +56,9 @@ class Similarity(nn.Module):
     def _distances_to_similarities(self, distances):
         # return torch.log((distances + 1) / (distances + self.epsilon))
         # return 1 / (1 + distances + self.epsilon)
-        similarities = 1 - torch.sqrt(distances / torch.tensor(self.num_features) + self.epsilon)
+        w_1 = self.prototype_vectors.shape[-2]
+        h_1 = self.prototype_vectors.shape[-1]
+        similarities = 1 - torch.sqrt(distances / torch.tensor(self.num_features * w_1 * h_1) + self.epsilon)
         return similarities.clamp(0, 1)
     
     def get_prototype_labels(self):
