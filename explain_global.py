@@ -54,7 +54,7 @@ def get_args_explain() -> argparse.Namespace:
     args = parser.parse_args()
     args.log_dir = args.state_dict_dir_model
     args.dir_for_saving_images  = 'upsampling_results'
-    args.rule_file = args.state_dict_dir_model + '/ruleset.txt'
+    args.rule_file = args.state_dict_dir_model + '/ruleset.csv'
     return args
 
 def explain_global(model:ProtoRS = None, 
