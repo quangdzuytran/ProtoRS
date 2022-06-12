@@ -100,7 +100,7 @@ def run_model(args=None):
                 log.log_values('log_epoch_overview', epoch, eval_info['test_accuracy'], train_info['train_accuracy'], train_info['loss'])
             
             # Project prototypes
-            if epoch >= args.freeze_epochs and epoch != args.epochs and epoch % args.projection_cycle == 0:
+            if epoch >= args.projection_start and epoch != args.epochs and epoch % args.projection_cycle == 0:
                 _, model = project(model, projectloader, device, args, log)
                 eval_info = eval(model, testloader, epoch, device, log)
                 original_test_acc = eval_info['test_accuracy']
