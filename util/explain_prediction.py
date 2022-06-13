@@ -80,7 +80,7 @@ def upsample_local(model: ProtoRS,
                             bbox_width_start=high_act_patch_indices[2],
                             bbox_width_end=high_act_patch_indices[3], color=(0, 255, 255))
 
-def gen_pred_vis(model: ProtoRS,
+def explain_prediction(model: ProtoRS,
                  sample: torch.Tensor,
                  sample_dir: str,
                  folder_name: str,
@@ -96,8 +96,8 @@ def gen_pred_vis(model: ProtoRS,
     img_name = sample_dir.split('/')[-1].split(".")[-2]
     #print(img_name)
     
-    # if not os.path.exists(os.path.join(args.log_dir, folder_name)):
-    #     os.makedirs(os.path.join(args.log_dir, folder_name))
+    if not os.path.exists(os.path.join(args.log_dir, folder_name)):
+        os.makedirs(os.path.join(args.log_dir, folder_name))
 
     destination_folder=os.path.join(os.path.join(args.log_dir, folder_name),img_name)
     if not os.path.isdir(destination_folder):

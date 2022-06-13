@@ -1,6 +1,6 @@
 from protors.protors import ProtoRS
 from util.data import get_dataloaders
-from util.explain_prediction import gen_pred_vis
+from util.explain_prediction import explain_prediction
 import argparse
 import torch
 import torchvision.transforms as transforms
@@ -39,7 +39,7 @@ def get_local_expl_args() -> argparse.Namespace:
                         help='Resize images to this size')
     parser.add_argument('--dir_for_saving_images',
                         type=str,
-                        default='upsampling_results',
+                        default='local_upsampling_results',
                         help='Directoy for saving the prototypes, patches and heatmaps')
     parser.add_argument('--upsample_threshold',
                         type=float,
@@ -74,7 +74,7 @@ def explain_local(args):
     
     sample = test_transform(Image.open(args.sample_dir)).unsqueeze(0).to(device)
 
-    gen_pred_vis(model, sample, args.sample_dir, args.results_dir, args, classes)
+    explain_prediction(model, sample, args.sample_dir, args.results_dir, args, classes)
 
 if __name__ == '__main__':
     args = get_local_expl_args()

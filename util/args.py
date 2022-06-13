@@ -108,8 +108,12 @@ def get_args() -> argparse.Namespace:
                         )
     parser.add_argument('--dir_for_saving_images',
                         type=str,
-                        default='upsampling_results',
+                        default='prototype_upsampling_results',
                         help='Directory for saving the prototypes, patches and heatmaps')
+    parser.add_argument('--binarize_threshold',
+                        type=float,
+                        default=0.8,
+                        help='Threshold (between 0 and 1) for binarizing similarity score')
     parser.add_argument('--upsample_threshold',
                         type=float,
                         default=0.98,
@@ -122,6 +126,14 @@ def get_args() -> argparse.Namespace:
                         action='store_true',
                         help='Flag that uses estimated gradient.'
                         )
+    parser.add_argument('--soft_epochs',
+                        type=int,
+                        default=50,
+                        help='Number of epochs where soft threshold (sigmoid) will be used')
+    parser.add_argument('--projection_cycle',
+                        type=int,
+                        default=10,
+                        help='Cycle (in epochs) for prototype projection after model is unfrozen')
     
     args = parser.parse_args()
     args.milestones = get_milestones(args)

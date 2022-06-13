@@ -1,7 +1,6 @@
 import argparse
 import os
 import pickle
-from sklearn.preprocessing import binarize
 import sys
 from collections import defaultdict
 
@@ -27,12 +26,12 @@ class ProtoRS(nn.Module):
         self.epsilon = 1e-4
         self.num_prototypes = args.num_prototypes
         self.prototype_shape = (args.W1, args.H1, args.num_features)
-        self.prototype_layer = FocalSimilarity(self.num_prototypes,
+        self.prototype_layer = Similarity(self.num_prototypes,
                                         args.num_features,
                                         args.W1,
                                         args.H1,
                                         self.epsilon)
-        self.binarize_layer = Binarization(self.num_prototypes)
+        self.binarize_layer = Binarization(self.num_prototypes, args.binarize_threshold)
         # MLLP
         self.rs_dim_list = [self.num_prototypes] + \
                             list(map(int, args.structure.split('@'))) + \

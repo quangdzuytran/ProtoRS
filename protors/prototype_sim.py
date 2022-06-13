@@ -66,19 +66,19 @@ class Similarity(nn.Module):
 
 
 class Binarization(nn.Module):
-    def __init__(self, num_prototypes):
+    def __init__(self, num_prototypes, binarize_threshold):
         super().__init__()
         self.layer_type = 'binarization'
         self.dim2id = {i: i for i in range(num_prototypes)}
-        self.threshold = 0.9
+        self.threshold = binarize_threshold
         self.k = 50
+        self.hard_threshold = False
 
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
         return torch.sigmoid(self.k * (xs - self.threshold))
 
     def binarized_forward(self, 
-                        xs: torch.Tensor, 
-                        hard_threshold: bool = False, 
+                        xs: torch.Tensor,
                         explain_info: dict = None) -> torch.Tensor:
         with torch.no_grad():
             # extra code for local explanation 
@@ -96,7 +96,7 @@ class Binarization(nn.Module):
                 explain_info['matched_prototypes'] = matched_prop_list
 
             # MAIN forward code
-            if hard_threshold:
+            if self.hard_threshold:
                 return Binarize.apply(xs - self.threshold)
             else:
                 return self.forward(xs)

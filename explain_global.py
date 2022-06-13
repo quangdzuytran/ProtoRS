@@ -34,9 +34,13 @@ def get_args_explain() -> argparse.Namespace:
                         type=str,
                         default='',
                         help='The directory containing a state dict (checkpoint) with a pretrained protors. Note that training further from a checkpoint does not seem to work correctly. Evaluating a trained protors does work.')
+    parser.add_argument('--log_dir',
+                        type=str,
+                        default='./runs/run_protors',
+                        help='The directory in which output are to be put')
     parser.add_argument('--dir_for_saving_images',
                         type=str,
-                        default='upsampling_results',
+                        default='prototype_upsampling_results',
                         help='Directory for saving the prototypes, patches and heatmaps')
     parser.add_argument('--upsample_threshold',
                         type=float,
@@ -52,9 +56,6 @@ def get_args_explain() -> argparse.Namespace:
                         action='store_true',
                         help='Not to perform rule printing')
     args = parser.parse_args()
-    args.log_dir = args.state_dict_dir_model
-    args.dir_for_saving_images  = 'upsampling_results'
-    args.rule_file = args.state_dict_dir_model + '/ruleset.txt'
     return args
 
 def explain_global(model:ProtoRS = None, 
@@ -63,6 +64,9 @@ def explain_global(model:ProtoRS = None,
                     args = None, 
                     log:Log = None):
     args = args or get_args()
+    args.log_dir = args.log_dir + '/explained_model'
+    args.rule_file = args.log_dir + '/ruleset.txt'
+
     if device is None:
         if not args.disable_cuda and torch.cuda.is_available():
             # device = torch.device('cuda')
@@ -86,7 +90,6 @@ def explain_global(model:ProtoRS = None,
     if not hasattr(args, 'no_reeval') or hasattr(args, 'no_reeval') and not args.no_reeval: 
         eval_info = eval(model, testloader, 'projected', device, log)
         print("Loaded model's accuracy: {0}".format(eval_info['test_accuracy']))
-    print(model.mllp.layer_list)
 
     #  Upsample prototypes
     if not hasattr(args, 'no_upsample') or hasattr(args, 'no_upsample') and not args.no_upsample:
@@ -99,7 +102,7 @@ def explain_global(model:ProtoRS = None,
 
         # Upsample
         print('Upscaling prototypes ...')
-        project_info = upsample(model, project_info, projectloader, 'projected', args, log)
+        project_info = upsample(model, project_info, projectloader, '', args, log)
         print('Upscaling finished.')
 
     # Print rules
@@ -110,7 +113,7 @@ def explain_global(model:ProtoRS = None,
         print('Rule set printed at {}'.format(args.rule_file))
     
         # Save extracted model
-        model.save(f'{args.state_dict_dir_model}/'+ 'rules_extracted')
+        model.save(f'{args.log_dir}')
 
 if __name__ == '__main__':
     torch.autograd.set_detect_anomaly(True)
