@@ -65,7 +65,7 @@ def explain_global(model:ProtoRS = None,
                     log:Log = None):
     args = args or get_args()
     args.log_dir = args.log_dir + '/explained_model'
-    args.rule_file = args.log_dir + '/ruleset.txt'
+    args.rule_file = args.log_dir + '/ruleset.csv'
 
     if device is None:
         if not args.disable_cuda and torch.cuda.is_available():

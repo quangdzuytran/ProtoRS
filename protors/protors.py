@@ -238,19 +238,19 @@ class ProtoRS(nn.Module):
         # print rules
         kv_list = sorted(marked.items(), key=lambda x: max(map(abs, x[1].values())), reverse=True) # sort rules by abs(weights) a.k.a rule significance
         print('[+] Printing {} rule(s)...'.format(len(kv_list)))
-        print('RID', end='\t', file=file)
+        print('RID', end=',', file=file)
         for i, ln in enumerate(label_name):
-            print('{}(b={:.4f})'.format(ln, bl[i]), end='\t', file=file)
-        print('Support\tRule', file=file)
+            print('{}(b={:.4f})'.format(ln, bl[i]), end=',', file=file)
+        print('Support,Rule', file=file)
         for k, v in kv_list:
             rid = k
-            print(rid, end='\t', file=file)
+            print('"', rid, '"', end=',', sep='', file=file)
             for li in range(len(label_name)):
-                print('{:.4f}'.format(v[li]), end='\t', file=file)
+                print('{:.4f}'.format(v[li]), end=',', file=file)
             now_layer = layer_list[-1 + rid[0]]
             # print('({},{})'.format(now_layer.node_activation_cnt[rid2dim[rid]].item(), now_layer.forward_tot))
             print('{:.4f}'.format((now_layer.node_activation_cnt[rid2dim[rid]] / now_layer.forward_tot).item()),
-                  end='\t', file=file)
+                  end=',', file=file)
             print(now_layer.rule_name[rid[1]], end='\n', file=file)
         print('#' * 60, file=file)
         return kv_list
