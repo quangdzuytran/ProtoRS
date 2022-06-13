@@ -8,7 +8,7 @@ Model explanation:
 ```
 python explain_global.py --state_dict_dir_model runs/protors_cub/checkpoints/best_test_model --log_dir runs/protors_cub --batch_size 128
 ```
-Explaining individual predictions:
+Explaining individual predictions (must run `explain_global.py` beforehand):
 ```
-explain_local.py --model runs/protors_cub/explained_model --log_dir runs/protors_cub/explained_model --dataset CUB-200-2011 --sample_dir data/CUB_200_2011/dataset/test_full/017.Cardinal/Cardinal_0014_17389.jpg
+python explain_local.py --model runs/protors_cub/explained_model --log_dir runs/protors_cub/explained_model --dataset CUB-200-2011 --sample_dir data/CUB_200_2011/dataset/test_full/017.Cardinal/Cardinal_0014_17389.jpg
 ```
