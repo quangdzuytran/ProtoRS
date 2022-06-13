@@ -211,7 +211,8 @@ class DisjunctionLayer(nn.Module):
 
 # TODO: move this function into ProtoRS itself, for encapsulation sake
 def extract_rules(prev_layer, skip_connect_layer, layer, pos_shift=0):
-    """Given 2 consecutive layers, generate rules conferred by the weights between them. 
+    """Given 2 consecutive layers, generate rules conferred by the weights between them.
+    A rule is a combination of nodes from previous layers, connected together by a node from the current layer
     This function was copied and modified from RRL, since there are no discrete features to worry about.
     Comments were also added to aid comprehension.
 
@@ -222,12 +223,13 @@ def extract_rules(prev_layer, skip_connect_layer, layer, pos_shift=0):
         pos_shift (int, optional): because conjunctive and disjunctive layer are concatenated together, this number is used to marked the start of the disjunctive layer. Defaults to 0.
 
     Returns:
-        _type_: _description_
+        dim2id (defaultdict): a dictionary with key being the node index of the current layer, and value is an index of rule_list
+        rule_list (list): a list of rules a.k.a different combinations of node indexes of the previous layers
     """
     dim2id = defaultdict(lambda: -1) # key: node id (after concatenation); value: rule index
     rules = {} # a dictionary to detect duplicate rules
     tmp = 0 # unique rules count, used to index the rules inside the rule_list
-    rule_list = [] # the list of rules to be return
+    rule_list = [] # the list of node_idx combinations to be return
     Wb = (layer.W > 0.5).type(torch.int).detach().cpu().numpy() # binarize the weights
 
     # inherit the dim2d dictionary of the previous layer(s)
@@ -248,20 +250,25 @@ def extract_rules(prev_layer, skip_connect_layer, layer, pos_shift=0):
             continue
         rule = {} # a dictionary of rules for the current node, each rule is a list of node ids from the previous layer having positive connection to this current node
         
-        # iterate over each weight of a node, i: previous node index (before concatenation), w: weight of prev node i -> current node ri
+        # iterate over each weight of a node, i: node index of previous layers (after concatenation), w: weight of prev node i -> current node ri
         for i, w in enumerate(row):
-            if w > 0 and merged_dim2id[i][1] != -1:
-                rule[merged_dim2id[i]] = 1
+            if w > 0 and merged_dim2id[i][1] != -1: # previous rule index is not -1 a.k.a valid rule
+                rule[merged_dim2id[i]] = 1 # current rule is also valid
         rule = tuple(sorted(rule.keys())) # sort the connection list by previous node's index
-        if rule not in rules: # is a unique list of connections
+        if rule not in rules: # is a unique combination (in the context of this layer)
             rules[rule] = tmp # assign index for rule
             rule_list.append(rule)
             dim2id[ri + pos_shift] = tmp
             tmp += 1 # increment unique rules count
         else:
-            dim2id[ri + pos_shift] = rules[rule] # reuse index of existing list of connections (previous layer's node IDs)
+            dim2id[ri + pos_shift] = rules[rule] # reuse index of existing combinations (of this layer)
     return dim2id, rule_list
 
+def dim2idcallable():
+    """UnionLayer.dim2id is a defaultdict initialized with a lambda expression. Unfortunately pickling would not work with this lambda expression.
+    This is a replacement function for it
+    """
+    return -1
 
 class UnionLayer(nn.Module):
     """The union layer is used to learn the rule-based representation."""
@@ -305,7 +312,8 @@ class UnionLayer(nn.Module):
         # concatenate rule ids together
         shift = max(con_dim2id.values()) + 1
         dis_dim2id = {k: (-1 if v == -1 else v + shift) for k, v in dis_dim2id.items()}
-        dim2id = defaultdict(lambda: -1, {**con_dim2id, **dis_dim2id})
+        #dim2id = defaultdict(lambda: -1, {**con_dim2id, **dis_dim2id})
+        dim2id = defaultdict(dim2idcallable, {**con_dim2id, **dis_dim2id})
         rule_list = (con_rule_list, dis_rule_list)
 
         self.dim2id = dim2id
@@ -315,11 +323,11 @@ class UnionLayer(nn.Module):
 
     def get_rule_description(self, prev_rule_name, wrap=False):
         self.rule_name = []
-        for rl, op in zip(self.rule_list, ('&', '|')):
+        for rl, op in zip(self.rule_list, ('&', '|')): # (conjunctive list, '&'), (disjunctive list, '|')
             # iterate over rules in the list
             for rule in rl:
                 name = ''
-                # iterate over the rule a.k.a the set of previous node's IDs
+                # iterate over the rule a.k.a the combination of (concatenated) node IDs from previous layers
                 for i, ri in enumerate(rule):
                     op_str = ' {} '.format(op) if i != 0 else ''
                     var_str = ('({})' if wrap else '{}').format(prev_rule_name[2 + ri[0]][ri[1]]) # wrap this rule around previous layer's rules

@@ -20,7 +20,9 @@ def upsample(model: ProtoRS, project_info: dict, project_loader: DataLoader, fol
         log.log_message("\nUpsampling prototypes for visualization...")
         imgs = project_loader.dataset.imgs
         for j in range(model.num_prototypes):
-            if True: #TODO: this condition is a placeholder for when pruning is implemented and pruned prototypes are to be discarded
+            # quick and dirty way to check for duplicate prototype
+            if len(torch.unique(model.prototype_layer.prototype_vectors[0:j+1], dim=0)) > len(torch.unique(model.prototype_layer.prototype_vectors[0:j], dim=0)):
+                
                 # find the original image this prototype was projected onto
                 prototype_info = project_info[j]
                 prototype_idx = j

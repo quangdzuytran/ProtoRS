@@ -52,7 +52,7 @@ def get_dataloaders(args: argparse.Namespace):
                                              shuffle=False,
                                              pin_memory=cuda
                                              )
-    print("Num classes (k) = ", len(classes), flush=True)
+    #print("Num classes (k) = ", len(classes), flush=True)
     return trainloader, projectloader, testloader, classes, c
 
 

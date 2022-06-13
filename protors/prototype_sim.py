@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from protors.components import Binarize
 
-class FocalSimilarity(nn.Module):
+class Similarity(nn.Module):
     def __init__(self, 
                  num_prototypes: int, 
                  num_features: int, 
@@ -76,8 +76,26 @@ class Binarization(nn.Module):
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
         return torch.sigmoid(self.k * (xs - self.threshold))
 
-    def binarized_forward(self, xs: torch.Tensor, hard_threshold: bool = False) -> torch.Tensor:
+    def binarized_forward(self, 
+                        xs: torch.Tensor, 
+                        hard_threshold: bool = False, 
+                        explain_info: dict = None) -> torch.Tensor:
         with torch.no_grad():
+            # extra code for local explanation 
+            if explain_info is not None:
+                explain_info['threshold'] = self.threshold
+                # record which prototype is a match
+                binarized = Binarize.apply(xs - self.threshold)
+                matched_prop_idx = binarized.nonzero().to('cpu').numpy() # non-zeroes are matches
+
+                # turn nonzero()'s output format into our own format
+                matched_prop_list = [set() for x in xs] # a list of matched prototypes set for every sample
+                for indices in matched_prop_idx:
+                    matched_prop_list[indices[0]].add(self.dim2id[indices[1]]) # indices[0]: index of sample in the batch
+
+                explain_info['matched_prototypes'] = matched_prop_list
+
+            # MAIN forward code
             if hard_threshold:
                 return Binarize.apply(xs - self.threshold)
             else:

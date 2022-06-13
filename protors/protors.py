@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 
 from protors.mllp import MLLP
-from protors.prototype_sim import FocalSimilarity, Binarization
+from protors.prototype_sim import Similarity, Binarization
 
 class ProtoRS(nn.Module):
     def __init__(self, 
@@ -39,6 +39,9 @@ class ProtoRS(nn.Module):
                             [self.num_classes]
         self.mllp = MLLP(dim_list=self.rs_dim_list, 
                         estimated_grad=args.estimated_grad)
+
+        # Placeholder for the final rule set
+        self.final_dim2id = {}
     
     @property
     def features_requires_grad(self) -> bool:
@@ -107,8 +110,8 @@ class ProtoRS(nn.Module):
         return torch.load(directory_path + '/model.pth')  
 
     def forward(self, 
-                xs: torch.Tensor
-                ) -> tuple:
+                xs: torch.Tensor,
+                explain_info: dict = None) -> tuple:
         # Forward conv net
         features = self.net(xs)
         features = self.add_on(features)
@@ -116,10 +119,10 @@ class ProtoRS(nn.Module):
         # Compute similarities
         similarities = self.prototype_layer(features, W, H).view(bs, self.num_prototypes)
         similarities_cont = self.binarize_layer(similarities)
-        similarities_disc = self.binarize_layer.binarized_forward(similarities)
+        similarities_disc = self.binarize_layer.binarized_forward(similarities, explain_info=explain_info)
         # Classify
         out_cont = self.mllp(similarities_cont)
-        out_disc = self.mllp.binarized_forward(similarities_disc)
+        out_disc = self.mllp.binarized_forward(similarities_disc, explain_info=explain_info)
         return out_cont, out_disc
 
     def forward_partial(self,
@@ -167,6 +170,16 @@ class ProtoRS(nn.Module):
             self.binarize_layer.__setattr__('layer_type', 'binarization')
         layer_list = nn.ModuleList([self.binarize_layer]) + self.mllp.layer_list # imo this is better then reindexing all the layers
 
+        # prune duplicate prototype
+        # TODO: add this snippet into a seperate function
+        print('[+] Pruning duplicate prototypes...')
+        for i in range(self.num_prototypes):
+            if self.binarize_layer.dim2id[i] != i: 
+                continue
+            for j in range(i+1, self.num_prototypes):
+                if self.prototype_layer.prototype_vectors[i].equal(self.prototype_layer.prototype_vectors[j]):
+                    self.binarize_layer.dim2id[j] = i
+
         # pruning/detect dead nodes
         if layer_list[1] is None and train_loader is None:
             raise Exception("Need train_loader for the dead nodes detection.")
@@ -206,25 +219,25 @@ class ProtoRS(nn.Module):
         else:
             merged_dim2id = {k: (-1, v) for k, v in prev_layer.dim2id.items()}
 
-        Wl, bl = list(layer_list[-1].parameters()) # weights and ... biases?
+        Wl, bl = list(layer_list[-1].parameters()) # weights and biases of the last layer a.k.a the linear layer
         bl = torch.sum(Wl.T[always_act_pos], dim=0) + bl
         Wl = Wl.cpu().detach().numpy()
         bl = bl.cpu().detach().numpy()
 
         marked = defaultdict(lambda: defaultdict(float))
-        rid2dim = {}
+        rid2dim = {} # key: rule id, value: node id of the last logical layer or the last skip connection layer
         # iterate over the nodes/labels
         for label_id, wl in enumerate(Wl):
             # iterate over the weights of each label
             for i, w in enumerate(wl):
                 rid = merged_dim2id[i] # look up rule ID from the merged dictionary
-                if rid == -1 or rid[1] == -1: # rules with dead nodes
+                if rid == -1 or rid[1] == -1: # invalid rule id/ rule with dead nodes
                     continue
-                marked[rid][label_id] += w
-                rid2dim[rid] = i % prev_layer.output_dim
+                marked[rid][label_id] += w # combine duplicate rules for this label by adding up their weights
+                rid2dim[rid] = i % prev_layer.output_dim # this rule corresponds to the node i from the last logical layer/skip connection layer
 
-        # ???
-        kv_list = sorted(marked.items(), key=lambda x: max(map(abs, x[1].values())), reverse=True)
+        # print rules
+        kv_list = sorted(marked.items(), key=lambda x: max(map(abs, x[1].values())), reverse=True) # sort rules by abs(weights) a.k.a rule significance
         print('[+] Printing {} rule(s)...'.format(len(kv_list)))
         print('RID', end='\t', file=file)
         for i, ln in enumerate(label_name):

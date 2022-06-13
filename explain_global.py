@@ -83,31 +83,36 @@ def explain_global(model:ProtoRS = None,
         model.to(device=device)
 
     # Reevaluate
-    if not args.no_reeval:
+    if not hasattr(args, 'no_reeval') or hasattr(args, 'no_reeval') and not args.no_reeval: 
         eval_info = eval(model, testloader, 'projected', device, log)
         print("Loaded model's accuracy: {0}".format(eval_info['test_accuracy']))
+    print(model.mllp.layer_list)
 
     #  Upsample prototypes
-    if not args.no_upsample:
+    if not hasattr(args, 'no_upsample') or hasattr(args, 'no_upsample') and not args.no_upsample:
         # Project
         if project_info is None: # model was not projected beforehand
             # Perform projection without saving
             project_info, model = project(model, projectloader, device, args, log)
             eval_info = eval(model, testloader, 'projected', device, log)
             print("Projected model's accuracy: {0}".format(eval_info['test_accuracy']))
-    
+
         # Upsample
         print('Upscaling prototypes ...')
         project_info = upsample(model, project_info, projectloader, 'projected', args, log)
         print('Upscaling finished.')
 
     # Print rules
-    if not args.no_ruleprint:
+    if not hasattr(args, 'no_ruleprint') or hasattr(args, 'no_ruleprint') and not args.no_ruleprint:
         print('Printing rule set ...')
         with open(args.rule_file, 'w') as rule_file:
             model.rule_print(classes, trainloader, device=device, file=rule_file)
         print('Rule set printed at {}'.format(args.rule_file))
+    
+        # Save extracted model
+        model.save(f'{args.state_dict_dir_model}/'+ 'rules_extracted')
 
 if __name__ == '__main__':
+    torch.autograd.set_detect_anomaly(True)
     args = get_args_explain()
     explain_global(args=args)
