@@ -117,6 +117,10 @@ class ProtoRS(nn.Module):
         bs, D, W, H = features.shape
         # Compute similarities
         similarities = self.prototype_layer(features, W, H).view(bs, self.num_prototypes)
+        # print()
+        # print(similarities.mean())
+        # print(similarities.max())
+        # print(similarities.min())
         similarities_cont = self.binarize_layer(similarities)
         similarities_disc = self.binarize_layer.binarized_forward(similarities, explain_info=explain_info)
         # Classify

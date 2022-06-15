@@ -1,3 +1,4 @@
+from turtle import distance
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -49,17 +50,18 @@ class Similarity(nn.Module):
 
         # Use the values to compute the squared L2 distance
         distances = F.relu(xs_squared_l2 + ps_squared_l2 - 2 * xs_conv)
-        # distances = torch.sqrt(torch.abs(distances) + self.epsilon)
+        distances = torch.sqrt(torch.abs(distances) + self.epsilon)
 
         return distances
 
     def _distances_to_similarities(self, distances):
         # return torch.log((distances + 1) / (distances + self.epsilon))
         # return 1 / (1 + distances + self.epsilon)
-        w_1 = self.prototype_vectors.shape[-2]
-        h_1 = self.prototype_vectors.shape[-1]
-        similarities = 1 - torch.sqrt(distances / torch.tensor(self.num_features * w_1 * h_1) + self.epsilon)
-        return similarities.clamp(0, 1)
+        return torch.exp(-distances)
+        # w_1 = self.prototype_vectors.shape[-2]
+        # h_1 = self.prototype_vectors.shape[-1]
+        # similarities = 1 - torch.sqrt(distances / torch.tensor(self.num_features * w_1 * h_1) + self.epsilon)
+        # return similarities.clamp(0, 1)
     
     def get_prototype_labels(self):
         num_prototypes = self.prototype_vectors.shape[0]
@@ -77,7 +79,8 @@ class Binarization(nn.Module):
         self.hard_threshold = False
 
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
-        return torch.sigmoid(self.k * (xs - self.threshold))
+        # return torch.sigmoid(self.k * (xs - self.threshold))
+        return xs
 
     def binarized_forward(self, 
                         xs: torch.Tensor,
