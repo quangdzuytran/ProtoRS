@@ -1,4 +1,3 @@
-from turtle import distance
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -79,8 +78,7 @@ class Binarization(nn.Module):
         self.hard_threshold = False
 
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
-        # return torch.sigmoid(self.k * (xs - self.threshold))
-        return xs
+        return torch.sigmoid(self.k * (xs - self.threshold))
 
     def binarized_forward(self, 
                         xs: torch.Tensor,
