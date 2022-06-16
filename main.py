@@ -70,7 +70,9 @@ def run_model(args=None):
             # Freeze (part of) network for some epochs if indicated in args
             freeze(model, epoch, params_to_freeze, params_to_train, args, log)
             log_learning_rates(optimizer, args, log)
-
+            assert args.warmup_epochs < args.soft_epochs
+            if epoch == args.warmup_epochs + 1:
+                model.binarize_layer.use_sigmoid = True
             # Changing between soft and hard threshold
             if epoch == args.soft_epochs + 1:
                 model.binarize_layer.hard_threshold = True
