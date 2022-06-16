@@ -78,7 +78,10 @@ class Binarization(nn.Module):
         self.hard_threshold = False
 
     def forward(self, xs: torch.Tensor) -> torch.Tensor:
-        return torch.sigmoid(self.k * (xs - self.threshold))
+        if self.hard_threshold:
+            return torch.sigmoid(self.k * (xs - self.threshold))
+        else:
+            return xs
 
     def binarized_forward(self, 
                         xs: torch.Tensor,
