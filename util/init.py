@@ -25,9 +25,9 @@ def init_model(model: ProtoRS, optimizer, scheduler, device, args: argparse.Name
             device = torch.device('cpu')
         if args.disable_cuda or not torch.cuda.is_available():
         # model = load_state(args.state_dict_dir_model, device)
-            model = torch.load(args.state_dict_dir_model+'/model.pth', map_location=device)
+            model.load_state_dict(torch.load(args.state_dict_dir_model+'/model_state.pth', map_location=device))
         else:
-            model = torch.load(args.state_dict_dir_model+'/model.pth')
+            model.load_state_dict(torch.load(args.state_dict_dir_model+'/model_state.pth'))
         model.to(device=device)
         try:
             epoch = int(args.state_dict_dir_model.split('epoch_')[-1]) + 1
@@ -39,6 +39,10 @@ def init_model(model: ProtoRS, optimizer, scheduler, device, args: argparse.Name
         if epoch>args.freeze_epochs:
             for parameter in model.net.parameters():
                 parameter.requires_grad = True
+        if epoch>args.warmup_epochs:
+            model.binarize_layer.use_sigmoid = True
+        if epoch>args.soft_epochs:
+            model.binarize_layer.hard_threshold = True
         
         if os.path.isfile(args.state_dict_dir_model+'/scheduler_state.pth'):
             scheduler.load_state_dict(torch.load(args.state_dict_dir_model+'/scheduler_state.pth'))
