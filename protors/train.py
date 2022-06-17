@@ -57,7 +57,7 @@ def train_epoch(model: ProtoRS,
         # Compute the loss
         ys_prob = torch.softmax(ys_pred_disc, dim=1)
         loss = F.cross_entropy(ys_pred_disc, ys)
-        loss_grad = (ys_prob - ys_onehot) / nr_batches
+        loss_grad = (ys_prob - ys_onehot) / ys_onehot.shape[0]
         # Compute the gradient
         ys_pred_cont.backward(loss_grad)
         # Update model parameters
