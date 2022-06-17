@@ -41,7 +41,7 @@ def init_model(model: ProtoRS, optimizer, scheduler, device, args: argparse.Name
                 parameter.requires_grad = True
         
         if os.path.isfile(args.state_dict_dir_model+'/scheduler_state.pth'):
-            # scheduler.load_state_dict(torch.load(args.state_dict_dir_model+'/scheduler_state.pth'))
+            scheduler.load_state_dict(torch.load(args.state_dict_dir_model+'/scheduler_state.pth'))
             # print(scheduler.state_dict(),flush=True)
             scheduler.last_epoch = epoch - 1
             scheduler._step_count = epoch
@@ -58,7 +58,7 @@ def init_model(model: ProtoRS, optimizer, scheduler, device, args: argparse.Name
             # initialize prototypes
             torch.nn.init.normal_(model.prototype_layer.prototype_vectors, mean=mean, std=std)
             model.add_on.apply(init_weights_xavier)
-    return model, epoch
+    return model, epoch, optimizer, scheduler
 
 def init_weights_xavier(m):
     if type(m) == torch.nn.Conv2d:

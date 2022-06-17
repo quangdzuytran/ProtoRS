@@ -52,7 +52,7 @@ def run_model(args=None):
     # Determine which optimizer should be used to update the model parameters
     optimizer, params_to_freeze, params_to_train = get_optimizer(model, args)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer=optimizer, milestones=args.milestones, gamma=args.gamma)
-    model, epoch = init_model(model, optimizer, scheduler, device, args)
+    model, epoch, optimizer, scheduler = init_model(model, optimizer, scheduler, device, args)
 
     model.save(f'{log.checkpoint_dir}/model_init')
     log.log_message("Number of prototypes: " + str(args.num_prototypes))
