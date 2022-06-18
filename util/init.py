@@ -47,7 +47,7 @@ def init_model(model: ProtoRS, optimizer, scheduler, device, args: argparse.Name
                 model.binarize_layer.hard_threshold = True
             
             if os.path.isfile(args.state_dict_dir_model+'/scheduler_state.pth'):
-                scheduler.load_state_dict(torch.load(args.state_dict_dir_model+'/scheduler_state.pth'))
+                # scheduler.load_state_dict(torch.load(args.state_dict_dir_model+'/scheduler_state.pth'))
                 # print(scheduler.state_dict(),flush=True)
                 scheduler.last_epoch = epoch - 1
                 scheduler._step_count = epoch
