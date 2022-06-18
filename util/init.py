@@ -49,8 +49,9 @@ def init_model(model: ProtoRS, optimizer, scheduler, device, args: argparse.Name
             if os.path.isfile(args.state_dict_dir_model+'/scheduler_state.pth'):
                 # scheduler.load_state_dict(torch.load(args.state_dict_dir_model+'/scheduler_state.pth'))
                 # print(scheduler.state_dict(),flush=True)
-                scheduler.last_epoch = epoch - 1
-                scheduler._step_count = epoch
+                scheduler.last_epoch = epoch - 2
+                scheduler._step_count = epoch - 1
+                scheduler.step()
         else:
             if args.disable_cuda or not torch.cuda.is_available():
             # model = load_state(args.state_dict_dir_model, device)
