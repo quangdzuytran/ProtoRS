@@ -101,6 +101,9 @@ def get_args() -> argparse.Namespace:
                         type=str,
                         default='',
                         help='The directory containing a state dict (checkpoint) with a pretrained protors. Note that training further from a checkpoint does not seem to work correctly. Evaluating a trained protors does work.')
+    parser.add_argument('--resume',
+                        action='store_true',
+                        help='Flag for resume training')
     parser.add_argument('--freeze_epochs',
                         type=int,
                         default = 30,
