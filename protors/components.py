@@ -147,7 +147,7 @@ class LRLayer(nn.Module):
 
     def clip(self):
         for param in self.fc1.parameters():
-            param.data.clamp_(-1.0, 1.0)
+            param.data.clamp_(0.0, 1.0)
 
 
 class ConjunctionLayer(nn.Module):
