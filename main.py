@@ -65,6 +65,16 @@ def run_model(args=None):
         '''
             TRAIN AND EVALUATE MODEL
         '''
+        if args.resume:
+            epoch -= 1
+            if epoch >= args.projection_start and epoch != args.epochs and epoch % args.projection_cycle == 0:
+                _, model = project(model, projectloader, device, args, log)
+                eval_info = eval(model, testloader, epoch, device, log)
+                original_test_acc = eval_info['test_accuracy']
+                best_test_acc = save_best_test_model(model, optimizer, scheduler, best_test_acc, eval_info['test_accuracy'], log)
+                log.log_values('log_epoch_overview', epoch, eval_info['test_accuracy'], "n.a.", "n.a.")
+            epoch += 1
+            
         for epoch in range(epoch, args.epochs + 1):
             log.log_message("\nEpoch %s"%str(epoch))
             # Freeze (part of) network for some epochs if indicated in args

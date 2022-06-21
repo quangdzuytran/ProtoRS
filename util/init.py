@@ -23,28 +23,50 @@ def init_model(model: ProtoRS, optimizer, scheduler, device, args: argparse.Name
             device = torch.device('cuda:{}'.format(torch.cuda.current_device()))
         else:
             device = torch.device('cpu')
-        if args.disable_cuda or not torch.cuda.is_available():
-        # model = load_state(args.state_dict_dir_model, device)
-            model = torch.load(args.state_dict_dir_model+'/model.pth', map_location=device)
-        else:
-            model = torch.load(args.state_dict_dir_model+'/model.pth')
-        model.to(device=device)
-        try:
-            epoch = int(args.state_dict_dir_model.split('epoch_')[-1]) + 1
-        except:
-            epoch=args.epochs+1
-        #print("Train further from epoch: ", epoch, flush=True)
-        optimizer.load_state_dict(torch.load(args.state_dict_dir_model+'/optimizer_state.pth', map_location=device))
+        if args.resume:
+            if args.disable_cuda or not torch.cuda.is_available():
+            # model = load_state(args.state_dict_dir_model, device)
+                model.load_state_dict(torch.load(args.state_dict_dir_model+'/model_state.pth', map_location=device))
+            else:
+                model.load_state_dict(torch.load(args.state_dict_dir_model+'/model_state.pth'))
+            model.to(device=device)
 
-        if epoch>args.freeze_epochs:
-            for parameter in model.net.parameters():
-                parameter.requires_grad = True
-        
-        if os.path.isfile(args.state_dict_dir_model+'/scheduler_state.pth'):
-            # scheduler.load_state_dict(torch.load(args.state_dict_dir_model+'/scheduler_state.pth'))
-            # print(scheduler.state_dict(),flush=True)
-            scheduler.last_epoch = epoch - 1
-            scheduler._step_count = epoch
+            try:
+                epoch = int(args.state_dict_dir_model.split('epoch_')[-1]) + 1
+            except:
+                epoch=args.epochs+1
+            print("Train further from epoch: ", epoch, flush=True)
+            optimizer.load_state_dict(torch.load(args.state_dict_dir_model+'/optimizer_state.pth', map_location=device))
+
+            if epoch>args.freeze_epochs:
+                for parameter in model.net.parameters():
+                    parameter.requires_grad = True
+            if epoch>args.soft_epochs:
+                model.binarize_layer.hard_threshold = True
+            
+            if os.path.isfile(args.state_dict_dir_model+'/scheduler_state.pth'):
+                # scheduler.load_state_dict(torch.load(args.state_dict_dir_model+'/scheduler_state.pth'))
+                # print(scheduler.state_dict(),flush=True)
+                scheduler.last_epoch = epoch - 2
+                scheduler._step_count = epoch - 1
+                scheduler.step()
+        else:
+            if args.disable_cuda or not torch.cuda.is_available():
+            # model = load_state(args.state_dict_dir_model, device)
+                model = torch.load(args.state_dict_dir_model+'/model.pth', map_location=device)
+            else:
+                model = torch.load(args.state_dict_dir_model+'/model.pth')
+            model.to(device=device)
+            
+            optimizer.load_state_dict(torch.load(args.state_dict_dir_model+'/optimizer_state.pth', map_location=device))
+            
+            epoch=args.epochs+1
+            
+            if os.path.isfile(args.state_dict_dir_model+'/scheduler_state.pth'):
+                # scheduler.load_state_dict(torch.load(args.state_dict_dir_model+'/scheduler_state.pth'))
+                # print(scheduler.state_dict(),flush=True)
+                scheduler.last_epoch = epoch - 1
+                scheduler._step_count = epoch
     
     elif args.state_dict_dir_net != '': # load pretrained conv network
         # initialize prototypes
