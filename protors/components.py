@@ -168,13 +168,15 @@ class ConjunctionLayer(nn.Module):
     def forward(self, x):
         if self.use_not:
             x = torch.cat((x, 1 - x), dim=1)
-        return self.Product.apply(1 - (1 - x).unsqueeze(-1) * self.W.t())
+        A = 1 - self.Product.apply(1 - self.W)
+        return self.Product.apply(1 - (1 - x).unsqueeze(-1) * self.W.t()) * A
 
     def binarized_forward(self, x):
         if self.use_not:
             x = torch.cat((x, 1 - x), dim=1)
         Wb = Binarize.apply(self.W - THRESHOLD)
-        return torch.prod(1 - (1 - x).unsqueeze(-1) * Wb.t(), dim=1)
+        Ab = 1 - torch.prod(1 - Wb, dim=1)
+        return torch.prod(1 - (1 - x).unsqueeze(-1) * Wb.t(), dim=1) * Ab
 
     def clip(self):
         self.W.data.clamp_(0.0, 1.0)
