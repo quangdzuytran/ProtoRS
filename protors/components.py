@@ -287,7 +287,7 @@ class UnionLayer(nn.Module):
         self.rule_name = None
 
         self.con_layer = ConjunctionLayer(self.n, self.input_dim, use_not=use_not, estimated_grad=estimated_grad)
-        self.dis_layer = DisjunctionLayer(self.n, self.input_dim, use_not=use_not, estimated_grad=estimated_grad)
+        self.dis_layer = ConjunctionLayer(self.n, self.input_dim, use_not=use_not, estimated_grad=estimated_grad)
 
     def forward(self, x):
         return torch.cat([self.con_layer(x), self.dis_layer(x)], dim=1)
@@ -323,7 +323,7 @@ class UnionLayer(nn.Module):
 
     def get_rule_description(self, prev_rule_name, wrap=False):
         self.rule_name = []
-        for rl, op in zip(self.rule_list, ('&', '|')): # (conjunctive list, '&'), (disjunctive list, '|')
+        for rl, op in zip(self.rule_list, ('&', '&')): # (conjunctive list, '&'), (disjunctive list, '|')
             # iterate over rules in the list
             for rule in rl:
                 name = ''
