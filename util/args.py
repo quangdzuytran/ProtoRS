@@ -262,7 +262,7 @@ def get_optimizer(model, args: argparse.Namespace) -> torch.optim.Optimizer:
                                lr=args.lr,
                                momentum=args.momentum), params_to_freeze, params_to_train
     if optim_type == 'Adam':
-        return torch.optim.Adam(paramlist, lr=args.lr, eps=1e-07), params_to_freeze, params_to_train
+        return torch.optim.Adam(paramlist, lr=args.lr, eps=1e-07, weight_decay=args.weight_decay), params_to_freeze, params_to_train
     if optim_type == 'AdamW':
         return torch.optim.AdamW(paramlist, lr=args.lr, eps=1e-07, weight_decay=args.weight_decay), params_to_freeze, params_to_train
 
