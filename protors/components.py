@@ -137,7 +137,7 @@ class LRLayer(nn.Module):
         self.output_dim = self.n
         self.layer_type = 'linear'
 
-        self.fc1 = nn.Linear(self.input_dim, self.output_dim)
+        self.fc1 = nn.Linear(self.input_dim, self.output_dim, bias=False)
 
     def forward(self, x):
         return self.fc1(x)
@@ -147,7 +147,7 @@ class LRLayer(nn.Module):
 
     def clip(self):
         for param in self.fc1.parameters():
-            param.data.clamp_(-1.0, 1.0)
+            param.data.clamp_(0.0, 1.0)
 
 
 class ConjunctionLayer(nn.Module):
