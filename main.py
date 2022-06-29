@@ -154,6 +154,7 @@ def run_model(args=None):
     name = 'projected'
     projection_info, model = project(model, projectloader, device, args, log)
     projected_model = deepcopy(model)
+    print("Number of unique prototypes:", torch.unique(model.prototype_layer.prototype_vectors).shape)
     save_model_description(model, optimizer, scheduler, name, log)
     eval_info = eval(model, testloader, name, device, log)
     projected_test_acc = eval_info['test_accuracy']
