@@ -275,12 +275,12 @@ def dim2idcallable():
 class UnionLayer(nn.Module):
     """The union layer is used to learn the rule-based representation."""
 
-    def __init__(self, n, input_dim, use_not=False, estimated_grad=False):
+    def __init__(self, n, input_dim, use_not=False, estimated_grad=False, is_con=True):
         super(UnionLayer, self).__init__()
         self.n = n
         self.use_not = use_not
         self.input_dim = input_dim
-        self.output_dim = self.n * 2
+        self.output_dim = self.n
         self.layer_type = 'union'
         self.forward_tot = None
         self.node_activation_cnt = None
@@ -288,8 +288,8 @@ class UnionLayer(nn.Module):
         self.rule_list = None
         self.rule_name = None
 
-        self.con_layer = ConjunctionLayer(self.n, self.input_dim, use_not=use_not, estimated_grad=estimated_grad)
-        self.dis_layer = DisjunctionLayer(self.n, self.input_dim, use_not=use_not, estimated_grad=estimated_grad)
+        self.con_layer = ConjunctionLayer(self.n if is_con else 0, self.input_dim, use_not=use_not, estimated_grad=estimated_grad)
+        self.dis_layer = DisjunctionLayer(self.n if not is_con else 0, self.input_dim, use_not=use_not, estimated_grad=estimated_grad)
 
     def forward(self, x):
         return torch.cat([self.con_layer(x), self.dis_layer(x)], dim=1)

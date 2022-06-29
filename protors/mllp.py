@@ -19,7 +19,7 @@ class MLLP(nn.Module):
                 layer = LRLayer(dim_list[i], num)
                 layer_name = 'lr{}'.format(i)
             else:
-                layer = UnionLayer(dim_list[i], num, estimated_grad=estimated_grad)
+                layer = UnionLayer(dim_list[i], num, estimated_grad=estimated_grad, is_con=(i%2==1))
                 layer_name = 'union{}'.format(i)
             prev_layer_dim = layer.output_dim
             self.add_module(layer_name, layer)
