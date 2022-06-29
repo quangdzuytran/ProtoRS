@@ -41,8 +41,8 @@ def init_model(model: ProtoRS, optimizer, scheduler, device, args: argparse.Name
             if epoch>args.freeze_epochs:
                 for parameter in model.net.parameters():
                     parameter.requires_grad = True
-            if epoch>args.soft_epochs:
-                model.binarize_layer.hard_threshold = True
+            # if epoch>args.soft_epochs:
+            #     model.binarize_layer.hard_threshold = True
             
             if os.path.isfile(args.state_dict_dir_model+'/scheduler_state.pth'):
                 # scheduler.load_state_dict(torch.load(args.state_dict_dir_model+'/scheduler_state.pth'))
@@ -70,16 +70,18 @@ def init_model(model: ProtoRS, optimizer, scheduler, device, args: argparse.Name
     
     elif args.state_dict_dir_net != '': # load pretrained conv network
         # initialize prototypes
-        torch.nn.init.normal_(model.prototype_layer.prototype_vectors, mean=mean, std=std)
+        # torch.nn.init.normal_(model.prototype_layer.prototype_vectors, mean=mean, std=std)
         #strict is False so when loading pretrained model, ignore the linear classification layer
         model.net.load_state_dict(torch.load(args.state_dict_dir_net+'/model_state.pth'), strict=False)
         model.add_on.load_state_dict(torch.load(args.state_dict_dir_net+'/model_state.pth'), strict=False) 
+        model.fc.apply(init_weights_xavier)
     
     else:
         with torch.no_grad():
             # initialize prototypes
-            torch.nn.init.normal_(model.prototype_layer.prototype_vectors, mean=mean, std=std)
+            # torch.nn.init.normal_(model.prototype_layer.prototype_vectors, mean=mean, std=std)
             model.add_on.apply(init_weights_xavier)
+            model.fc.apply(init_weights_xavier)
     return model, epoch
 
 def init_weights_xavier(m):

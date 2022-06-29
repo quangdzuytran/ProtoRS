@@ -65,15 +65,15 @@ def run_model(args=None):
         '''
             TRAIN AND EVALUATE MODEL
         '''
-        if args.resume:
-            epoch -= 1
-            if epoch >= args.projection_start and epoch != args.epochs and epoch % args.projection_cycle == 0:
-                _, model = project(model, projectloader, device, args, log)
-                eval_info = eval(model, testloader, epoch, device, log)
-                original_test_acc = eval_info['test_accuracy']
-                best_test_acc = save_best_test_model(model, optimizer, scheduler, best_test_acc, eval_info['test_accuracy'], log)
-                log.log_values('log_epoch_overview', epoch, eval_info['test_accuracy'], "n.a.", "n.a.")
-            epoch += 1
+        # if args.resume:
+        #     epoch -= 1
+        #     if epoch >= args.projection_start and epoch != args.epochs and epoch % args.projection_cycle == 0:
+        #         _, model = project(model, projectloader, device, args, log)
+        #         eval_info = eval(model, testloader, epoch, device, log)
+        #         original_test_acc = eval_info['test_accuracy']
+        #         best_test_acc = save_best_test_model(model, optimizer, scheduler, best_test_acc, eval_info['test_accuracy'], log)
+        #         log.log_values('log_epoch_overview', epoch, eval_info['test_accuracy'], "n.a.", "n.a.")
+        #     epoch += 1
             
         for epoch in range(epoch, args.epochs + 1):
             log.log_message("\nEpoch %s"%str(epoch))
@@ -82,12 +82,12 @@ def run_model(args=None):
             log_learning_rates(optimizer, args, log)
 
             # Changing between soft and hard threshold
-            if epoch == args.soft_epochs + 1:
-                model.binarize_layer.hard_threshold = True
-            if model.binarize_layer.hard_threshold:
-                log.log_message("Threshold: Hard")
-            else:
-                log.log_message("Threshold: Soft")
+            # if epoch == args.soft_epochs + 1:
+            #     model.binarize_layer.hard_threshold = True
+            # if model.binarize_layer.hard_threshold:
+            #     log.log_message("Threshold: Hard")
+            # else:
+            #     log.log_message("Threshold: Soft")
             
             # Train model
             train_info = train_epoch(model, trainloader, optimizer, epoch, device, log, log_prefix)
@@ -110,12 +110,12 @@ def run_model(args=None):
                 log.log_values('log_epoch_overview', epoch, eval_info['test_accuracy'], train_info['train_accuracy'], train_info['loss'])
             
             # Project prototypes
-            if epoch >= args.projection_start and epoch != args.epochs and epoch % args.projection_cycle == 0:
-                _, model = project(model, projectloader, device, args, log)
-                eval_info = eval(model, testloader, epoch, device, log)
-                original_test_acc = eval_info['test_accuracy']
-                best_test_acc = save_best_test_model(model, optimizer, scheduler, best_test_acc, eval_info['test_accuracy'], log)
-                log.log_values('log_epoch_overview', epoch, eval_info['test_accuracy'], "n.a.", "n.a.")
+            # if epoch >= args.projection_start and epoch != args.epochs and epoch % args.projection_cycle == 0:
+            #     _, model = project(model, projectloader, device, args, log)
+            #     eval_info = eval(model, testloader, epoch, device, log)
+            #     original_test_acc = eval_info['test_accuracy']
+            #     best_test_acc = save_best_test_model(model, optimizer, scheduler, best_test_acc, eval_info['test_accuracy'], log)
+            #     log.log_values('log_epoch_overview', epoch, eval_info['test_accuracy'], "n.a.", "n.a.")
             
             scheduler.step()
  
@@ -151,21 +151,21 @@ def run_model(args=None):
         PROJECT
     '''
     # Project prototypes
-    name = 'projected'
-    projection_info, model = project(model, projectloader, device, args, log)
-    projected_model = deepcopy(model)
-    print("Number of unique prototypes:", torch.unique(model.prototype_layer.prototype_vectors, dim=0).shape[0])
-    save_model_description(model, optimizer, scheduler, name, log)
-    eval_info = eval(model, testloader, name, device, log)
-    projected_test_acc = eval_info['test_accuracy']
-    log.log_values('log_epoch_overview', name, projected_test_acc, "n.a.", "n.a.")
+    # name = 'projected'
+    # projection_info, model = project(model, projectloader, device, args, log)
+    # projected_model = deepcopy(model)
+    # print("Number of unique prototypes:", torch.unique(model.prototype_layer.prototype_vectors, dim=0).shape[0])
+    # save_model_description(model, optimizer, scheduler, name, log)
+    # eval_info = eval(model, testloader, name, device, log)
+    # projected_test_acc = eval_info['test_accuracy']
+    # log.log_values('log_epoch_overview', name, projected_test_acc, "n.a.", "n.a.")
 
-    # Upscaling and printing rule set
-    explain_global(model, projection_info, device, args, log)
+    # # Upscaling and printing rule set
+    # explain_global(model, projection_info, device, args, log)
 
-    # TODO: Visualize
+    # # TODO: Visualize
     
-    return trained_model.to('cpu'), projected_model.to('cpu'), original_test_acc, projected_test_acc, projection_info
+    # return trained_model.to('cpu'), projected_model.to('cpu'), original_test_acc, projected_test_acc, projection_info
 
 if __name__ == '__main__':
     torch.autograd.set_detect_anomaly(True)

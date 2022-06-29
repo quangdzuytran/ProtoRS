@@ -40,8 +40,8 @@ def eval(model: ProtoRS,
         xs, ys = xs.to(device), ys.to(device)
 
         # Use the model to classify this batch of input data
-        ys_pred_cont, ys_pred_disc = model.forward(xs)
-        ys_prob = torch.softmax(ys_pred_disc, dim=1)
+        ys_pred_cont = model.forward(xs)
+        ys_prob = torch.softmax(ys_pred_cont, dim=1)
         ys_pred = torch.argmax(ys_prob, dim=1)
 
         # Update the confusion matrix
@@ -56,7 +56,7 @@ def eval(model: ProtoRS,
 
         # keep list of leaf indices where test sample ends up when deterministic routing is used.
         del ys_pred_cont
-        del ys_pred_disc
+        # del ys_pred_disc
         del ys_prob
         del ys_pred
 

@@ -220,18 +220,14 @@ def get_optimizer(model, args: argparse.Namespace) -> torch.optim.Optimizer:
                 {"params": params_to_freeze, "lr": args.lr_net, "weight_decay": args.weight_decay, "momentum": args.momentum},
                 {"params": params_to_train, "lr": args.lr_block, "weight_decay": args.weight_decay, "momentum": args.momentum},
                 {"params": model.add_on.parameters(), "lr": args.lr_block, "weight_decay": args.weight_decay, "momentum": args.momentum},
-                {"params": model.prototype_layer.parameters(), "lr": args.lr, "weight_decay": 0, "momentum": 0}]
-            for layer in model.mllp.layer_list:
-                paramlist.append({"params": layer.parameters(), "lr": args.lr_rule, "weight_decay": args.weight_decay, "momentum": args.momentum})
+                {"params": model.fc.parameters(), "lr": args.lr, "weight_decay": args.weight_decay, "momentum": args.momentum}]
         
         else:
             paramlist = [
                 {"params": params_to_freeze, "lr": args.lr_net, "weight_decay": args.weight_decay},
                 {"params": params_to_train, "lr": args.lr_block, "weight_decay": args.weight_decay},
                 {"params": model.add_on.parameters(), "lr": args.lr_block, "weight_decay": args.weight_decay},
-                {"params": model.prototype_layer.parameters(), "lr": args.lr, "weight_decay": 0}]
-            for layer in model.mllp.layer_list:
-                paramlist.append({"params": layer.parameters(), "lr": args.lr_rule, "weight_decay": args.weight_decay})              
+                {"params": model.fc.parameters(), "lr": args.lr, "weight_decay": args.weight_decay}]
     
     elif args.net == 'densenet121':
         # freeze densenet121 except last convolutional layer
@@ -245,17 +241,13 @@ def get_optimizer(model, args: argparse.Namespace) -> torch.optim.Optimizer:
             {"params": params_to_freeze, "lr": args.lr_net, "weight_decay": args.weight_decay},
             {"params": params_to_train, "lr": args.lr_block, "weight_decay": args.weight_decay},
             {"params": model.add_on.parameters(), "lr": args.lr_block, "weight_decay": args.weight_decay},
-            {"params": model.prototype_layer.parameters(), "lr": args.lr, "weight_decay": 0}]
-        for layer in model.mllp.layer_list:
-            paramlist.append({"params": layer.parameters(), "lr": args.lr_rule, "weight_decay": args.weight_decay})
+            {"params": model.fc.parameters(), "lr": args.lr, "weight_decay": args.weight_decay}]
 
     else:
         paramlist = [
             {"params": model.net.parameters(), "lr": args.lr_net, "weight_decay": args.weight_decay},
             {"params": model.add_on.parameters(), "lr": args.lr_block, "weight_decay": args.weight_decay},
-            {"params": model.prototype_layer.parameters(), "lr": args.lr, "weight_decay": 0}]
-        for layer in model.mllp.layer_list:
-            paramlist.append({"params": layer.parameters(), "lr": args.lr_rule, "weight_decay": args.weight_decay})
+            {"params": model.fc.parameters(), "lr": args.lr, "weight_decay": args.weight_decay}]
     
     if optim_type == 'SGD':
         return torch.optim.SGD(paramlist,

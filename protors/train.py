@@ -47,25 +47,26 @@ def train_epoch(model: ProtoRS,
 
         xs, ys = xs.to(device), ys.to(device)
 
-        ys_onehot = F.one_hot(ys, num_classes=model.num_classes)
+        # ys_onehot = F.one_hot(ys, num_classes=model.num_classes)
 
         # Perform a forward pass through the network
-        ys_pred_cont, ys_pred_disc = model.forward(xs)
+        ys_pred_cont = model.forward(xs)
 
         # Learn prototypes and network with gradient descent. 
         # If disable_derivative_free_leaf_optim, leaves are optimized with gradient descent as well.
         # Compute the loss
-        ys_prob = torch.softmax(ys_pred_disc, dim=1)
-        loss = F.cross_entropy(ys_pred_disc, ys)
-        loss_grad = (ys_prob - ys_onehot) / ys_onehot.shape[0]
+        ys_prob = torch.softmax(ys_pred_cont, dim=1)
+        loss = F.cross_entropy(ys_prob, ys)
+        # loss_grad = (ys_prob - ys_onehot) / ys_onehot.shape[0]
         # Compute the gradient
-        ys_pred_cont.backward(loss_grad)
+        # ys_pred_cont.backward(loss_grad)
+        loss.backward()
         # Update model parameters
         optimizer.step()
         
-        model.prototype_layer.prototype_vectors.data.clamp_(0, 1)
-        for layer in model.mllp.layer_list:
-            layer.clip()
+        # model.prototype_layer.prototype_vectors.data.clamp_(0, 1)
+        # for layer in model.mllp.layer_list:
+        #     layer.clip()
         
         # Count the number of correct classifications  
         ys_pred_max = torch.argmax(ys_prob, dim=1)      
