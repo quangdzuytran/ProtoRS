@@ -220,7 +220,7 @@ class ProtoRS(nn.Module):
 
         # Wl, bl = list(layer_list[-1].parameters()) # weights and biases of the last layer a.k.a the linear layer
         # bl = torch.sum(Wl.T[always_act_pos], dim=0) + bl
-        Wl = layer_list[-1].parameters()
+        Wl = list(layer_list[-1].parameters())[0]
         Wl = Wl.cpu().detach().numpy()
         # bl = bl.cpu().detach().numpy()
 
