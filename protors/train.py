@@ -56,7 +56,7 @@ def train_epoch(model: ProtoRS,
         # If disable_derivative_free_leaf_optim, leaves are optimized with gradient descent as well.
         # Compute the loss
         ys_prob = torch.softmax(ys_pred_cont, dim=1)
-        loss = F.cross_entropy(ys_prob, ys)
+        loss = F.cross_entropy(ys_pred_cont, ys)
         # loss_grad = (ys_prob - ys_onehot) / ys_onehot.shape[0]
         # Compute the gradient
         # ys_pred_cont.backward(loss_grad)
