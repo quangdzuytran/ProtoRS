@@ -37,7 +37,8 @@ class ProtoRS(nn.Module):
                             list(map(int, args.structure.split('@'))) + \
                             [self.num_classes]
         self.mllp = MLLP(dim_list=self.rs_dim_list, 
-                        estimated_grad=args.estimated_grad)
+                        estimated_grad=args.estimated_grad,
+                        interlaced=args.interlaced)
 
         # Placeholder for the final rule set
         self.final_dim2id = {}

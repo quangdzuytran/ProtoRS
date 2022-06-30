@@ -140,6 +140,9 @@ def get_args() -> argparse.Namespace:
                         type=int,
                         default=10,
                         help='Cycle (in epochs) for prototype projection after model is unfrozen')
+    parser.add_argument('--interlaced',
+                        action='store_true',
+                        help='Flag that uses interlaced layers of conjunction and disjunction instead of parallel')
     
     args = parser.parse_args()
     args.milestones = get_milestones(args)
