@@ -44,7 +44,9 @@ def get_network(num_in_channels: int, args: argparse.Namespace):
         raise Exception('other base base_architecture NOT implemented')
     
     add_on_layers = nn.Sequential(
-                    nn.Conv2d(in_channels=first_add_on_layer_in_channels, out_channels=args.num_features, kernel_size=1, bias=False),
+                    nn.Conv2d(in_channels=first_add_on_layer_in_channels, out_channels=args.num_features, kernel_size=1),
+                    nn.ReLU(),
+                    nn.Conv2d(in_channels=args.num_features, out_channels=args.num_features, kernel_size=1),
                     nn.Sigmoid()
                     ) 
     return features, add_on_layers
