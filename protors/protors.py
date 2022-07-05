@@ -9,6 +9,7 @@ import torch.nn as nn
 
 from protors.mllp import MLLP
 from protors.prototype_sim import Similarity, Binarization
+from protors.components import rule_to_string
 
 class ProtoRS(nn.Module):
     def __init__(self, 
@@ -190,19 +191,20 @@ class ProtoRS(nn.Module):
         print('[+] Extracting rules from model...')
         labels = self.prototype_layer.get_prototype_labels()
         layer_list[1].get_rules(layer_list[0], None)
-        layer_list[1].get_rule_description((None, labels))
+        #layer_list[1].get_rule_description((None, labels))
+        layer_list[1].get_rule_description((None, [('p',i) for i in range(self.num_prototypes)]))
 
         # the second logical layer (if exists) has no skip connections
         if len(layer_list) >= 4:
             layer_list[2].get_rules(layer_list[1], None)
-            layer_list[2].get_rule_description((None, layer_list[1].rule_name), wrap=True)
+            layer_list[2].get_rule_description((None, layer_list[1].rule_name))
 
         # network with 3 hidden layers and more has skip connections 
         if len(layer_list) >= 5:
             for i in range(3, len(layer_list) - 1):
                 layer_list[i].get_rules(layer_list[i - 1], layer_list[i - 2])
                 layer_list[i].get_rule_description(
-                    (layer_list[i - 2].rule_name, layer_list[i - 1].rule_name), wrap=True)
+                    (layer_list[i - 2].rule_name, layer_list[i - 1].rule_name))
 
         # get the dim2id dictionary of the linear layer by merging the dim2id of the last logical layer + the skip connection layer 
         prev_layer = layer_list[-2]
@@ -251,6 +253,6 @@ class ProtoRS(nn.Module):
             # print('({},{})'.format(now_layer.node_activation_cnt[rid2dim[rid]].item(), now_layer.forward_tot))
             print('{:.4f}'.format((now_layer.node_activation_cnt[rid2dim[rid]] / now_layer.forward_tot).item()),
                   end=',', file=file)
-            print(now_layer.rule_name[rid[1]], end='\n', file=file)
+            print(rule_to_string(now_layer.rule_name[rid[1]], labels), end='\n', file=file)
         print('#' * 60, file=file)
         return kv_list

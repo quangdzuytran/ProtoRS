@@ -321,15 +321,58 @@ class UnionLayer(nn.Module):
 
         return dim2id, rule_list
 
-    def get_rule_description(self, prev_rule_name, wrap=False):
+    def get_rule_description(self, prev_rule_name):
         self.rule_name = []
         for rl, op in zip(self.rule_list, ('&', '|')): # (conjunctive list, '&'), (disjunctive list, '|')
             # iterate over rules in the list
             for rule in rl:
-                name = ''
+                previous_rules = []
+                #for ri in rule:
+                    #print(ri)
+                    #print(prev_rule_name[2 + ri[0]][ri[1]])
+                 #   previous_rules.append(prev_rule_name[2 + ri[0]][ri[1]])
+                previous_rules = [prev_rule_name[2 + ri[0]][ri[1]] for ri in rule]
+
                 # iterate over the rule a.k.a the combination of (concatenated) node IDs from previous layers
-                for i, ri in enumerate(rule):
-                    op_str = ' {} '.format(op) if i != 0 else ''
-                    var_str = ('({})' if wrap else '{}').format(prev_rule_name[2 + ri[0]][ri[1]]) # wrap this rule around previous layer's rules
-                    name += op_str + var_str
-                self.rule_name.append(name)
+                #for i, ri in enumerate(rule):
+                    #op_str = ' {} '.format(op) if i != 0 else ''
+                    #var_str = ('({})' if wrap else '{}').format(prev_rule_name[2 + ri[0]][ri[1]]) # wrap this rule around previous layer's rules
+                    #name += op_str + var_str
+                rule_tuple = (op, previous_rules)
+                self.rule_name.append(rule_tuple)
+
+def rule_to_string(rule, proto_labels, wrap=False) -> str:
+    """Turn a `rule_tuple'  generated in the UnionLayer.get_rule_description() into readable string
+
+    Returns:
+        str: rule written as string
+    """
+    op = rule[0]
+    assert op == 'p' or op == '&' or op == '|', "Unrecognized operator '{}'".format(op)
+
+    if op == 'p': # this is a prototype
+        return proto_labels[rule[1]]  # rule[1] is prototype id
+    
+    # else, this is a rule/rule 
+    name = ''
+    for i, clause in enumerate(rule[1]):
+        op_str = ' {} '.format(op) if i != 0 else ''
+        var_str = '{}'.format(rule_to_string(clause, proto_labels, wrap=True))
+        name += op_str + var_str
+    
+    return '({})'.format(name) if wrap else name # put braces around this rule if required
+
+def get_prototypes_in_rule(rule):
+    """Read a `rule' tuple generated in the UnionLayer.get_rule_description() to get the prototypes in it
+    """
+    op = rule[0]
+    assert op == 'p' or op == '&' or op == '|', "Unrecognized operator '{}'".format(op)
+
+    proto_set = set()
+    if op == 'p': # this is a prototype
+        proto_set.add(rule[1]) # rule[1] is prototype id
+    else:
+        # else, this is a rule/rule set
+        for clause in rule[1]:
+            proto_set |= get_prototypes_in_rule(clause) # recursively arggregate prototype set
+    return proto_set
