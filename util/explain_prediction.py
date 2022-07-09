@@ -10,6 +10,7 @@ import math
 from PIL import Image
 from protors.protors import ProtoRS
 from protors.upsample import find_high_activation_crop, imsave_with_bbox
+from protors.components import rule_to_string, get_prototypes_in_rule
 import torch
 
 import torchvision
@@ -117,7 +118,6 @@ def explain_prediction(model: ProtoRS,
         confidence = torch.max(sm(pred),dim=1)[0].item()
         assert 'matched_rules' in explain_info.keys()
 
-
     # explained_info['matched_prototypes'] is a list
     # each element in this list is an index for a prototype that exists in a particular image
     matched_prototypes = list(explain_info['matched_prototypes'][0])
@@ -127,21 +127,32 @@ def explain_prediction(model: ProtoRS,
     # each element in this list is a set of matched rules for a particular image    
     matched_rules = explain_info['matched_rules'][0]
 
+    # get the set of prototypes actually used in matched rules.
+    prototypes_in_matched_rules = set()
+    for rid in matched_rules.keys():
+        layer = model.mllp.layer_list[-1 + rid[0]] # layer containing rule
+        prototypes_in_matched_rules|= get_prototypes_in_rule(layer.rule_name[rid[1]])
+    prototypes_in_matched_rules &= set(matched_prototypes)
+
     # printing summary
     with open(destination_folder + '/summary.txt','w') as file:
         print('Predicted class: {}'.format(classes[label_ix]),file=file)
         print('Confidence: {:.5f}'.format(confidence), file=file)
         print('Similarity score threshold: {}'.format(explain_info['threshold']), file=file)
-        print('Matches {} prototypes and {} rules'.format(len(matched_prototypes), len(matched_rules)), file=file)
-        print('\nMatched prototypes:'.format(len(matched_prototypes)), file=file)
+        print('Matches {} prototype(s), {} of which result in {} rule(s)'.format(len(matched_prototypes), len(prototypes_in_matched_rules), len(matched_rules)), file=file)
+        print('\nMatched prototype(s):',file=file)
         prototype_names = model.prototype_layer.get_prototype_labels()
         for proto_idx in matched_prototypes:
             print('{}'.format(prototype_names[proto_idx]),file=file)
 
-        print('\nMatched rules:'.format(len(matched_rules)), file=file)
+        print('\nPrototype(s) that actually resulted in a matched rule: ', file=file)
+        for proto_idx in prototypes_in_matched_rules:
+            print('{}'.format(prototype_names[proto_idx]),file=file)
+
+        print('\nMatched rule(s):', file=file)
         for rid in matched_rules.keys():
             print('{}'.format(rid), file=file)
-
+        
     # aggregate rule influence
     Wl = list(model.mllp.layer_list[-1].parameters())[0] # weights and biases of the last layer a.k.a the linear layer
     Wl = Wl.cpu().detach().numpy()
@@ -163,7 +174,7 @@ def explain_prediction(model: ProtoRS,
             print('{:.4f}'.format(significance), end=',', file=file)
             now_layer = model.mllp.layer_list[-1 + rid[0]]
             # print('({},{})'.format(now_layer.node_activation_cnt[rid2dim[rid]].item(), now_layer.forward_tot))
-            print(now_layer.rule_name[rid[1]], end='\n', file=file)
+            print(rule_to_string(now_layer.rule_name[rid[1]], model.prototype_layer.get_prototype_labels()), end='\n', file=file)
         
     # Save input image
     sample_path = destination_folder + '/sample.jpg'
@@ -174,7 +185,7 @@ def explain_prediction(model: ProtoRS,
     output_path = destination_folder + '/output.jpg'
 
     #print("Upsampling locally...")
-    upsample_local(model,sample,sample_dir,folder_name,img_name,matched_prototypes,args)
+    upsample_local(model,sample,sample_dir,folder_name,img_name,prototypes_in_matched_rules,args)
 
     print("Finished")
     """
