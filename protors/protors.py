@@ -38,7 +38,8 @@ class ProtoRS(nn.Module):
                             list(map(int, args.structure.split('@'))) + \
                             [self.num_classes]
         self.mllp = MLLP(dim_list=self.rs_dim_list, 
-                        estimated_grad=args.estimated_grad)
+                        estimated_grad=args.estimated_grad,
+                        interlaced=args.interlaced)
 
         # Placeholder for the final rule set
         self.final_dim2id = {}
@@ -220,10 +221,11 @@ class ProtoRS(nn.Module):
         else:
             merged_dim2id = {k: (-1, v) for k, v in prev_layer.dim2id.items()}
 
-        Wl, bl = list(layer_list[-1].parameters()) # weights and biases of the last layer a.k.a the linear layer
-        bl = torch.sum(Wl.T[always_act_pos], dim=0) + bl
+        # Wl, bl = list(layer_list[-1].parameters()) # weights and biases of the last layer a.k.a the linear layer
+        # bl = torch.sum(Wl.T[always_act_pos], dim=0) + bl
+        Wl = list(layer_list[-1].parameters())[0]
         Wl = Wl.cpu().detach().numpy()
-        bl = bl.cpu().detach().numpy()
+        # bl = bl.cpu().detach().numpy()
 
         marked = defaultdict(lambda: defaultdict(float))
         rid2dim = {} # key: rule id, value: node id of the last logical layer or the last skip connection layer
@@ -242,7 +244,8 @@ class ProtoRS(nn.Module):
         print('[+] Printing {} rule(s)...'.format(len(kv_list)))
         print('RID', end=',', file=file)
         for i, ln in enumerate(label_name):
-            print('{}(b={:.4f})'.format(ln, bl[i]), end=',', file=file)
+            # print('{}(b={:.4f})'.format(ln, bl[i]), end=',', file=file)
+            print('{}'.format(ln), end=',', file=file)
         print('Support,Rule', file=file)
         for k, v in kv_list:
             rid = k

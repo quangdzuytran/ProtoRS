@@ -87,12 +87,12 @@ def explain_global(model:ProtoRS = None,
         model.to(device=device)
 
     # Reevaluate
-    if not hasattr(args, 'no_reeval') or hasattr(args, 'no_reeval') and not args.no_reeval: 
+    if hasattr(args, 'no_reeval') and not args.no_reeval: 
         eval_info = eval(model, testloader, 'projected', device, log)
         print("Loaded model's accuracy: {0}".format(eval_info['test_accuracy']))
 
     #  Upsample prototypes
-    if not hasattr(args, 'no_upsample') or hasattr(args, 'no_upsample') and not args.no_upsample:
+    if not hasattr(args, 'no_upsample') or (hasattr(args, 'no_upsample') and not args.no_upsample):
         # Project
         if project_info is None: # model was not projected beforehand
             # Perform projection without saving
@@ -106,7 +106,7 @@ def explain_global(model:ProtoRS = None,
         print('Upscaling finished.')
 
     # Print rules
-    if not hasattr(args, 'no_ruleprint') or hasattr(args, 'no_ruleprint') and not args.no_ruleprint:
+    if not hasattr(args, 'no_ruleprint') or (hasattr(args, 'no_ruleprint') and not args.no_ruleprint):
         print('Printing rule set ...')
         with open(args.rule_file, 'w') as rule_file:
             model.rule_print(classes, trainloader, device=device, file=rule_file)

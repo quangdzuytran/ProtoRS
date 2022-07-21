@@ -154,7 +154,7 @@ def explain_prediction(model: ProtoRS,
             print('{}'.format(rid), file=file)
         
     # aggregate rule influence
-    Wl, _ = list(model.mllp.layer_list[-1].parameters()) # weights and biases of the last layer a.k.a the linear layer
+    Wl = list(model.mllp.layer_list[-1].parameters())[0] # weights and biases of the last layer a.k.a the linear layer
     Wl = Wl.cpu().detach().numpy()
     sig_dict = [] # store the significance of each rule
     for rid in matched_rules.keys():

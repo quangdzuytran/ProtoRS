@@ -64,7 +64,7 @@ def train_epoch(model: ProtoRS,
         optimizer.step()
         
         model.prototype_layer.prototype_vectors.data.clamp_(0, 1)
-        for layer in model.mllp.layer_list[:-1]:
+        for layer in model.mllp.layer_list:
             layer.clip()
         
         # Count the number of correct classifications  

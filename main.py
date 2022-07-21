@@ -95,7 +95,7 @@ def run_model(args=None):
             best_train_acc = save_best_train_model(model, optimizer, scheduler, best_train_acc, train_info['train_accuracy'], log)
             
             # Evaluate model
-            if args.epochs>200:
+            if args.epochs>100:
                 if epoch%10==0 or epoch==args.epochs:
                     eval_info = eval(model, testloader, epoch, device, log)
                     original_test_acc = eval_info['test_accuracy']
@@ -128,13 +128,13 @@ def run_model(args=None):
         best_test_acc = save_best_test_model(model, optimizer, scheduler, best_test_acc, eval_info['test_accuracy'], log)
         log.log_values('log_epoch_overview', epoch, eval_info['test_accuracy'], "n.a.", "n.a.")
     
-    check = model.prototype_layer.prototype_vectors.lt(0).any() or model.prototype_layer.prototype_vectors.gt(1).any()
-    if check:
-        print("OUT OF RANGE PROTOTYPE VECTORS!!!")
-        print("Min:", model.prototype_layer.prototype_vectors.min())
-        print("Max:", model.prototype_layer.prototype_vectors.max())
-    else:
-        print("PROTOTYPE VECTORS ARE OKAY!!!")
+    # check = model.prototype_layer.prototype_vectors.lt(0).any() or model.prototype_layer.prototype_vectors.gt(1).any()
+    # if check:
+    #     print("OUT OF RANGE PROTOTYPE VECTORS!!!")
+    #     print("Min:", model.prototype_layer.prototype_vectors.min())
+    #     print("Max:", model.prototype_layer.prototype_vectors.max())
+    # else:
+    #     print("PROTOTYPE VECTORS ARE OKAY!!!")
     
     '''
         EVALUATE AND ANALYZE TRAINED MODEL
@@ -154,6 +154,7 @@ def run_model(args=None):
     name = 'projected'
     projection_info, model = project(model, projectloader, device, args, log)
     projected_model = deepcopy(model)
+    print("Number of unique prototypes:", torch.unique(model.prototype_layer.prototype_vectors, dim=0).shape[0])
     save_model_description(model, optimizer, scheduler, name, log)
     eval_info = eval(model, testloader, name, device, log)
     projected_test_acc = eval_info['test_accuracy']

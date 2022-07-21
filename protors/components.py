@@ -137,7 +137,7 @@ class LRLayer(nn.Module):
         self.output_dim = self.n
         self.layer_type = 'linear'
 
-        self.fc1 = nn.Linear(self.input_dim, self.output_dim)
+        self.fc1 = nn.Linear(self.input_dim, self.output_dim, bias=False)
 
     def forward(self, x):
         return self.fc1(x)
@@ -147,7 +147,7 @@ class LRLayer(nn.Module):
 
     def clip(self):
         for param in self.fc1.parameters():
-            param.data.clamp_(-1.0, 1.0)
+            param.data.clamp_(0.0, 1.0)
 
 
 class ConjunctionLayer(nn.Module):
@@ -168,13 +168,15 @@ class ConjunctionLayer(nn.Module):
     def forward(self, x):
         if self.use_not:
             x = torch.cat((x, 1 - x), dim=1)
-        return self.Product.apply(1 - (1 - x).unsqueeze(-1) * self.W.t())
+        A = 1 - self.Product.apply(1 - self.W)
+        return self.Product.apply(1 - (1 - x).unsqueeze(-1) * self.W.t()) * A
 
     def binarized_forward(self, x):
         if self.use_not:
             x = torch.cat((x, 1 - x), dim=1)
         Wb = Binarize.apply(self.W - THRESHOLD)
-        return torch.prod(1 - (1 - x).unsqueeze(-1) * Wb.t(), dim=1)
+        Ab = 1 - torch.prod(1 - Wb, dim=1)
+        return torch.prod(1 - (1 - x).unsqueeze(-1) * Wb.t(), dim=1) * Ab
 
     def clip(self):
         self.W.data.clamp_(0.0, 1.0)
@@ -273,21 +275,26 @@ def dim2idcallable():
 class UnionLayer(nn.Module):
     """The union layer is used to learn the rule-based representation."""
 
-    def __init__(self, n, input_dim, use_not=False, estimated_grad=False):
+    def __init__(self, n, input_dim, use_not=False, estimated_grad=False, interlaced=False, is_con=True):
         super(UnionLayer, self).__init__()
         self.n = n
         self.use_not = use_not
         self.input_dim = input_dim
-        self.output_dim = self.n * 2
+        self.output_dim = self.n 
+        if not interlaced:
+            self.output_dim *= 2
         self.layer_type = 'union'
         self.forward_tot = None
         self.node_activation_cnt = None
         self.dim2id = None
         self.rule_list = None
         self.rule_name = None
-
-        self.con_layer = ConjunctionLayer(self.n, self.input_dim, use_not=use_not, estimated_grad=estimated_grad)
-        self.dis_layer = DisjunctionLayer(self.n, self.input_dim, use_not=use_not, estimated_grad=estimated_grad)
+        if interlaced:
+            self.con_layer = ConjunctionLayer(self.n if is_con else 0, self.input_dim, use_not=use_not, estimated_grad=estimated_grad)
+            self.dis_layer = DisjunctionLayer(self.n if not is_con else 0, self.input_dim, use_not=use_not, estimated_grad=estimated_grad)
+        else:
+            self.con_layer = ConjunctionLayer(self.n, self.input_dim, use_not=use_not, estimated_grad=estimated_grad)
+            self.dis_layer = DisjunctionLayer(self.n, self.input_dim, use_not=use_not, estimated_grad=estimated_grad)
 
     def forward(self, x):
         return torch.cat([self.con_layer(x), self.dis_layer(x)], dim=1)
