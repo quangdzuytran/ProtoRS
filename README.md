@@ -31,7 +31,7 @@ The folder `preprocess_data` contains python code to download, extract and prepr
 
 ### Training
 1. Create a folder `./runs/`
-2. Run the command
+2. Run the command (if you want to use the interlaced configuration, use the tag `--interlaced` and double the numbers in the `--structure` tag.)
 ```
 python main.py --epochs 300 \
                 --log_dir ./runs/protors_cub \
@@ -52,7 +52,7 @@ python main.py --epochs 300 \
                 --milestones 200,240,260,280,300 \
                 --weight_decay 1e-3 \
                 --binarize_threshold 0.8
-``` (If you want to use the interlaced configuration, use the tag `--interlaced` and double the numbers in the `--structure` tag.)
+```
 3. Check your `--log_dir` to keep track of the training progress. This directory contains `log_epoch_overview.csv` which prints per epoch the test accuracy, mean training accuracy and the mean loss. File `log_train_epochs_losses.csv` prints the loss value and training accuracy per batch iteration. File `log.txt` logs additional info. 
 4. To continue the training, use the tag `--resume` and specify the last epoch location by the tag `--state_dict_dir_model ./runs/<last log dir>/checkpoints/epoch_<last epoch>`
 
